@@ -6,5 +6,5 @@ Chaque critère d'acceptation (section 11 du CDC) doit correspondre à terme
 
 
 def test_smoke():
-    import agentsauvegarde
-    assert agentsauvegarde.__version__ == "0.1.0"
+    import systemorion
+    assert systemorion.__version__ == "0.1.0"

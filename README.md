@@ -1,4 +1,4 @@
-# Agent de sauvegarde automatique des postes de travail
+# System Orion
 
 Agent Windows (service SYSTEM) sauvegardant silencieusement des arborescences
 ciblées vers un partage réseau SMB, sans interaction utilisateur.
@@ -7,7 +7,7 @@ ciblées vers un partage réseau SMB, sans interaction utilisateur.
 
 ## Documentation de référence
 
-La spécification fonctionnelle et technique fait foi : [docs/CDC_Sauvegarde_Agent_v1_2.md](docs/CDC_Sauvegarde_Agent_v1_2.md)
+La spécification fonctionnelle et technique fait foi : [docs/CDC_SystemOrion_v1_3.md](docs/CDC_SystemOrion_v1_3.md)
 
 Toute modification des décisions D1 à D11 du CDC exige une révision formelle
 avant toute évolution du code correspondant.
@@ -16,18 +16,30 @@ avant toute évolution du code correspondant.
 la validation du volet 9 du CDC (RGPD/AIPD) par un DPO ou juriste habilité (D9).
 Ce dépôt ne préjuge pas de cette validation.
 
+## Convention de nommage
+
+| Usage | Valeur |
+|---|---|
+| Nom produit | System Orion |
+| Service Windows (interne) | `SystemOrion` |
+| Clé de registre | `HKLM\SOFTWARE\SystemOrion` |
+| Source Event Log | `SystemOrion` |
+| Dossier ProgramData | `C:\ProgramData\SystemOrion\logs` |
+| Sous-dossier de sauvegarde réseau | `<homeDirectory>\SystemOrion\<NomPoste>` |
+| Package Python | `systemorion` |
+
 ## Structure du projet
 
 ```
-agentsauvegarde/
-├── service.py          # Point d'entrée du service Windows
-├── config.py           # Lecture/écriture du magasin de configuration
+systemorion/
+├── service.py          # Point d'entrée du service Windows « SystemOrion »
+├── config.py           # Lecture/écriture de HKLM\SOFTWARE\SystemOrion
 ├── journal_usn.py       # Requête USN, filtrage, reprise, détection rotation
 ├── vss.py               # Clichés Win32_ShadowCopy
 ├── cible_ad.py          # Résolution homeDirectory/homeDrive, impersonnification
 ├── backup.py            # File de copie, versioning, reprise réseau, rétention
 ├── exclusions.py        # Évaluation des règles d'exclusion
-├── logging_agent.py     # Event Log + fichiers rotatifs
+├── logging_agent.py     # Event Log « SystemOrion » + fichiers rotatifs
 └── state.py             # Persistance SQLite (USN, file d'attente, machine à états)
 tests/                    # Tests unitaires et d'intégration (recette, section 10 du CDC)
 docs/                      # Documents de référence (CDC, maquettes)
