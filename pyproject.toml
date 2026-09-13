@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "systemorion"
+version = "0.1.0"
+description = "System Orion — agent de sauvegarde silencieuse des postes de travail d'entreprise"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [
+    {name = "SystemOrion Dev Team", email = "dev@local"},
+]
+keywords = ["backup", "windows", "usn-journal", "vss", "enterprise"]
+
+dependencies = [
+    "pywin32>=306",
+]
+
+[project.optional-dependencies]
+gui = [
+    "PySide6>=6.5",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+systemorion-service = "systemorion.service:main"
+
+[tool.setuptools.packages.find]
+include = ["systemorion*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+markers = [
+    "windows: tests requiring Windows APIs (deselect with '-m not windows')",
+    "integration: integration tests requiring AD/SMB environment",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
