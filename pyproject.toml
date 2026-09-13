@@ -31,6 +31,7 @@ dev = [
 
 [project.scripts]
 systemorion-service = "systemorion.service:main"
+systemorion-gui = "systemorion.gui.main_window:run_gui"
 
 [tool.setuptools.packages.find]
 include = ["systemorion*"]
