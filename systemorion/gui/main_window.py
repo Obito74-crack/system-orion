@@ -212,6 +212,25 @@ class MainWindow(QMainWindow):
         summary_layout.addWidget(self.btn_goto_folders, alignment=Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(card_folders_summary)
+
+        # Section 3 : Restauration et historique (EF-09+)
+        card_restore = QFrame()
+        card_restore.setProperty("class", "cardSection")
+        restore_layout = QVBoxLayout(card_restore)
+
+        lbl_restore_title = QLabel("Restauration et historique")
+        lbl_restore_title.setProperty("class", "sectionTitle")
+        restore_layout.addWidget(lbl_restore_title)
+
+        lbl_restore_desc = QLabel("Rechercher et restaurer une version antérieure d'un document sauvegardé.")
+        lbl_restore_desc.setProperty("class", "sectionSubtitle")
+        restore_layout.addWidget(lbl_restore_desc)
+
+        self.btn_open_restore = QPushButton("Restaurer un fichier… ↺")
+        self.btn_open_restore.clicked.connect(self._open_restore_dialog)
+        restore_layout.addWidget(self.btn_open_restore, alignment=Qt.AlignmentFlag.AlignRight)
+
+        layout.addWidget(card_restore)
         layout.addStretch()
 
         return container
@@ -383,6 +402,28 @@ class MainWindow(QMainWindow):
             f"En exploitation normale, System Orion sauvegarde sous le chemin UNC personnel de l'utilisateur."
         )
         QMessageBox.information(self, "Détails Active Directory", msg)
+
+    def _open_restore_dialog(self) -> None:
+        """Ouvre le dialogue d'assistance à la restauration (EF-09+)."""
+        from systemorion.gui.restore_dialog import RestoreDialog
+
+        state_db = None
+        if os.path.exists(self.working_config.state_db_path):
+            try:
+                from systemorion.state import StateDB
+
+                state_db = StateDB(self.working_config.state_db_path)
+            except Exception:
+                pass
+
+        dialog = RestoreDialog(
+            state_db=state_db,
+            backup_unc_root=self.working_config.unc_override or self.txt_server_addr.text(),
+            parent=self,
+        )
+        dialog.exec()
+        if state_db is not None:
+            state_db.close()
 
     def _show_pattern_syntax_info(self) -> None:
         msg = (

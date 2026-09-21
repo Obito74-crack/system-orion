@@ -98,6 +98,33 @@ QListWidget::item:selected {
     border-radius: 4px;
 }
 
+/* Tableaux (QTableWidget) pour la restauration */
+QTableWidget {
+    background-color: #282828;
+    color: #ffffff;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    gridline-color: #383838;
+    selection-background-color: #3584e4;
+    selection-color: #ffffff;
+}
+
+QHeaderView::section {
+    background-color: #323232;
+    color: #dedede;
+    padding: 6px 10px;
+    border: none;
+    border-right: 1px solid #3d3d3d;
+    border-bottom: 1px solid #3d3d3d;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+QTableWidget::item {
+    padding: 6px 10px;
+    border-bottom: 1px solid #333333;
+}
+
 /* Boutons standards */
 QPushButton {
     background-color: #3d3d3d;

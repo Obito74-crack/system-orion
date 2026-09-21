@@ -30,6 +30,7 @@ dev = [
 ]
 
 [project.scripts]
+systemorion = "systemorion.cli:main"
 systemorion-service = "systemorion.service:main"
 systemorion-gui = "systemorion.gui.main_window:run_gui"
 
