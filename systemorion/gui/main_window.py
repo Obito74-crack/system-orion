@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
         self.gpo_banner.setObjectName("gpoBanner")
         gpo_layout = QHBoxLayout(self.gpo_banner)
         gpo_layout.setContentsMargins(12, 8, 12, 8)
-        self.lbl_gpo_text = QLabel("🔒 Géré par votre organisation — Paramètres verrouillés par GPO")
+        self.lbl_gpo_text = QLabel("Configuration verrouillée par stratégie de groupe (GPO)")
         self.lbl_gpo_text.setObjectName("gpoBannerText")
         gpo_layout.addWidget(self.lbl_gpo_text)
         self.gpo_banner.setVisible(self.is_gpo_locked)
@@ -165,15 +165,13 @@ class MainWindow(QMainWindow):
         self.txt_server_addr.setReadOnly(True)
         server_row.addWidget(self.txt_server_addr)
 
-        self.btn_edit_server = QPushButton("✏️")
+        self.btn_edit_server = QPushButton("Modifier")
         self.btn_edit_server.setToolTip("Modifier l'adresse cible manuellement")
-        self.btn_edit_server.setProperty("class", "toolButton")
         self.btn_edit_server.clicked.connect(self._toggle_edit_server)
         server_row.addWidget(self.btn_edit_server)
 
-        self.btn_info_ad = QPushButton("ⓘ")
+        self.btn_info_ad = QPushButton("Détails AD")
         self.btn_info_ad.setToolTip("Détails de la résolution Active Directory")
-        self.btn_info_ad.setProperty("class", "toolButton")
         self.btn_info_ad.clicked.connect(self._show_ad_info)
         server_row.addWidget(self.btn_info_ad)
 
@@ -207,8 +205,8 @@ class MainWindow(QMainWindow):
         self.lbl_exclusions_count.setProperty("class", "sectionSubtitle")
         summary_layout.addWidget(self.lbl_exclusions_count)
 
-        self.btn_goto_folders = QPushButton("Gérer les dossiers et exclusions →")
-        self.btn_goto_folders.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        self.btn_goto_folders = QPushButton("Gérer les dossiers et exclusions")
+        self.btn_goto_folders.clicked.connect(self._goto_folders_screen)
         summary_layout.addWidget(self.btn_goto_folders, alignment=Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(card_folders_summary)
@@ -226,7 +224,7 @@ class MainWindow(QMainWindow):
         lbl_restore_desc.setProperty("class", "sectionSubtitle")
         restore_layout.addWidget(lbl_restore_desc)
 
-        self.btn_open_restore = QPushButton("Restaurer un fichier… ↺")
+        self.btn_open_restore = QPushButton("Restaurer un fichier…")
         self.btn_open_restore.clicked.connect(self._open_restore_dialog)
         restore_layout.addWidget(self.btn_open_restore, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -245,10 +243,9 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
 
-        # Bouton retour
-        btn_back = QPushButton("← Retour à la fenêtre principale")
-        btn_back.clicked.connect(self._on_back_to_main_screen)
-        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignLeft)
+        lbl_screen2_desc = QLabel("Sélection des arborescences à sauvegarder et règles d'exclusion.")
+        lbl_screen2_desc.setProperty("class", "sectionSubtitle")
+        layout.addWidget(lbl_screen2_desc)
 
         # Section Dossiers à sauvegarder
         card_saved = QFrame()
@@ -260,13 +257,12 @@ class MainWindow(QMainWindow):
         lbl_saved_title.setProperty("class", "sectionTitle")
         saved_hdr.addWidget(lbl_saved_title)
 
-        self.btn_add_target = QPushButton("+ Ajouter un dossier…")
+        self.btn_add_target = QPushButton("Ajouter un dossier…")
         self.btn_add_target.clicked.connect(self._add_target_folder)
         saved_hdr.addWidget(self.btn_add_target, alignment=Qt.AlignmentFlag.AlignRight)
 
-        self.btn_del_target = QPushButton("🗑")
+        self.btn_del_target = QPushButton("Supprimer")
         self.btn_del_target.setToolTip("Supprimer le dossier sélectionné")
-        self.btn_del_target.setProperty("class", "toolButton")
         self.btn_del_target.clicked.connect(self._delete_target_folder)
         saved_hdr.addWidget(self.btn_del_target)
 
@@ -286,18 +282,16 @@ class MainWindow(QMainWindow):
         lbl_ignored_title.setProperty("class", "sectionTitle")
         ignored_hdr.addWidget(lbl_ignored_title)
 
-        btn_info_patterns = QPushButton("ⓘ Syntaxe")
-        btn_info_patterns.setProperty("class", "toolButton")
+        btn_info_patterns = QPushButton("Aide syntaxe")
         btn_info_patterns.clicked.connect(self._show_pattern_syntax_info)
         ignored_hdr.addWidget(btn_info_patterns)
 
-        self.btn_add_ignored = QPushButton("+ Ajouter un motif…")
+        self.btn_add_ignored = QPushButton("Ajouter une règle…")
         self.btn_add_ignored.clicked.connect(self._add_ignored_pattern)
         ignored_hdr.addWidget(self.btn_add_ignored, alignment=Qt.AlignmentFlag.AlignRight)
 
-        self.btn_del_ignored = QPushButton("🗑")
+        self.btn_del_ignored = QPushButton("Supprimer")
         self.btn_del_ignored.setToolTip("Supprimer le motif sélectionné")
-        self.btn_del_ignored.setProperty("class", "toolButton")
         self.btn_del_ignored.clicked.connect(self._delete_ignored_pattern)
         ignored_hdr.addWidget(self.btn_del_ignored)
 
@@ -308,7 +302,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(card_ignored)
 
         # Bouton Réinitialiser aux valeurs par défaut
-        self.btn_reset_defaults = QPushButton("Réinitialiser tous les dossiers aux valeurs par défaut…")
+        self.btn_reset_defaults = QPushButton("Réinitialiser les dossiers par défaut…")
         self.btn_reset_defaults.setObjectName("destructiveButton")
         self.btn_reset_defaults.clicked.connect(self._confirm_reset_defaults)
         layout.addWidget(self.btn_reset_defaults, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -384,10 +378,10 @@ class MainWindow(QMainWindow):
         is_readonly = self.txt_server_addr.isReadOnly()
         self.txt_server_addr.setReadOnly(not is_readonly)
         if is_readonly:
-            self.btn_edit_server.setText("💾")
+            self.btn_edit_server.setText("Valider")
             self.txt_server_addr.setFocus()
         else:
-            self.btn_edit_server.setText("✏️")
+            self.btn_edit_server.setText("Modifier")
             self.working_config.unc_override = self.txt_server_addr.text().strip()
 
     def _show_ad_info(self) -> None:
@@ -504,12 +498,24 @@ class MainWindow(QMainWindow):
             self.working_config.exclusion_patterns = list(defaults.exclusion_patterns)
             self._refresh_lists_and_summary()
 
+    def _goto_folders_screen(self) -> None:
+        """Bascule sur l'écran 2 des dossiers et exclusions."""
+        self.stack.setCurrentIndex(1)
+        self.lbl_header_title.setText("Dossiers et exclusions")
+        self.btn_cancel.setText("Retour")
+
     def _on_back_to_main_screen(self) -> None:
+        """Retourne sur l'écran 1 principal."""
         self.stack.setCurrentIndex(0)
+        self.lbl_header_title.setText("System Orion")
+        self.btn_cancel.setText("Annuler")
 
     def _on_cancel_clicked(self) -> None:
-        """Bouton Annuler : abandonne toutes les modifications sans écrire dans le registre."""
-        self.close()
+        """Bouton Annuler / Retour."""
+        if self.stack.currentIndex() == 1:
+            self._on_back_to_main_screen()
+        else:
+            self.close()
 
     def _on_save_clicked(self) -> None:
         """Bouton Sauvegarder : valide la connectivité et persiste dans HKLM\\SOFTWARE\\SystemOrion."""
