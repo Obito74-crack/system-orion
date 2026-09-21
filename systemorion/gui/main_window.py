@@ -91,18 +91,18 @@ class MainWindow(QMainWindow):
         # Bouton Annuler / Retour
         self.btn_cancel = QPushButton("Annuler")
         self.btn_cancel.clicked.connect(self._on_cancel_clicked)
-        header_layout.addWidget(self.btn_cancel, alignment=Qt.AlignLeft)
+        header_layout.addWidget(self.btn_cancel, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Titre central
         self.lbl_header_title = QLabel("System Orion")
         self.lbl_header_title.setObjectName("headerTitle")
-        header_layout.addWidget(self.lbl_header_title, alignment=Qt.AlignCenter)
+        header_layout.addWidget(self.lbl_header_title, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Bouton Sauvegarder
         self.btn_save = QPushButton("Sauvegarder")
         self.btn_save.setObjectName("primaryButton")
         self.btn_save.clicked.connect(self._on_save_clicked)
-        header_layout.addWidget(self.btn_save, alignment=Qt.AlignRight)
+        header_layout.addWidget(self.btn_save, alignment=Qt.AlignmentFlag.AlignRight)
 
         root_layout.addWidget(self.header_bar)
 
@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
 
         self.btn_goto_folders = QPushButton("Gérer les dossiers et exclusions →")
         self.btn_goto_folders.clicked.connect(lambda: self.stack.setCurrentIndex(1))
-        summary_layout.addWidget(self.btn_goto_folders, alignment=Qt.AlignRight)
+        summary_layout.addWidget(self.btn_goto_folders, alignment=Qt.AlignmentFlag.AlignRight)
 
         layout.addWidget(card_folders_summary)
         layout.addStretch()
@@ -229,7 +229,7 @@ class MainWindow(QMainWindow):
         # Bouton retour
         btn_back = QPushButton("← Retour à la fenêtre principale")
         btn_back.clicked.connect(self._on_back_to_main_screen)
-        layout.addWidget(btn_back, alignment=Qt.AlignLeft)
+        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Section Dossiers à sauvegarder
         card_saved = QFrame()
@@ -243,7 +243,7 @@ class MainWindow(QMainWindow):
 
         self.btn_add_target = QPushButton("+ Ajouter un dossier…")
         self.btn_add_target.clicked.connect(self._add_target_folder)
-        saved_hdr.addWidget(self.btn_add_target, alignment=Qt.AlignRight)
+        saved_hdr.addWidget(self.btn_add_target, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.btn_del_target = QPushButton("🗑")
         self.btn_del_target.setToolTip("Supprimer le dossier sélectionné")
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
 
         self.btn_add_ignored = QPushButton("+ Ajouter un motif…")
         self.btn_add_ignored.clicked.connect(self._add_ignored_pattern)
-        ignored_hdr.addWidget(self.btn_add_ignored, alignment=Qt.AlignRight)
+        ignored_hdr.addWidget(self.btn_add_ignored, alignment=Qt.AlignmentFlag.AlignRight)
 
         self.btn_del_ignored = QPushButton("🗑")
         self.btn_del_ignored.setToolTip("Supprimer le motif sélectionné")
@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
         self.btn_reset_defaults = QPushButton("Réinitialiser tous les dossiers aux valeurs par défaut…")
         self.btn_reset_defaults.setObjectName("destructiveButton")
         self.btn_reset_defaults.clicked.connect(self._confirm_reset_defaults)
-        layout.addWidget(self.btn_reset_defaults, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_reset_defaults, alignment=Qt.AlignmentFlag.AlignCenter)
 
         return container
 
@@ -453,10 +453,10 @@ class MainWindow(QMainWindow):
             self,
             "Confirmation de réinitialisation",
             "Voulez-vous vraiment réinitialiser la liste des dossiers sauvegardés et ignorés aux valeurs par défaut ?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             defaults = OrionConfig()
             self.working_config.target_paths = list(defaults.target_paths)
             self.working_config.excluded_dirs = list(defaults.excluded_dirs)
@@ -489,10 +489,10 @@ class MainWindow(QMainWindow):
                     f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
                     "Voulez-vous tout de même enregistrer cette configuration ?\n"
                     "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
-                    QMessageBox.Save | QMessageBox.Cancel,
-                    QMessageBox.Save,
+                    QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Save,
             )
-            if res != QMessageBox.Save:
+            if res != QMessageBox.StandardButton.Save:
                 return
 
         # 3. Persistance dans le magasin unique (D7)

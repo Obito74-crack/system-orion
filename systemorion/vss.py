@@ -50,6 +50,8 @@ class WmiVssBackend(VssBackend):
     """Backend natif Windows utilisant la classe WMI Win32_ShadowCopy (ET-01)."""
 
     def __init__(self) -> None:
+        self._wmi: Any = None
+        self._wmi_locator: Any = None
         if sys.platform != "win32":
             raise VssError("WmiVssBackend n'est supporté que sous Windows.")
         import win32com.client  # type: ignore

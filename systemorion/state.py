@@ -245,7 +245,7 @@ class StateDB:
                             (dest_path, file_size, TransferState.PENDING.value, now, item_id),
                         )
                     cur.execute("COMMIT;")
-                    return item_id
+                    return int(item_id)
 
                 cur.execute(
                     """

@@ -49,6 +49,7 @@ class WinregBackend(RegistryBackend):
     """Implémentation concrète utilisant le module standard winreg sous Windows."""
 
     def __init__(self) -> None:
+        self._winreg: Any = None
         if sys.platform != "win32":
             raise ConfigError("WinregBackend n'est supporté que sous Windows.")
         import winreg  # type: ignore

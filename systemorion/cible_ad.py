@@ -36,6 +36,7 @@ class AdsiDirectoryResolver(AdDirectoryResolver):
     """Implémentation concrète utilisant ADSI via win32com sous Windows (ET-01)."""
 
     def __init__(self) -> None:
+        self._client: Any = None
         if sys.platform != "win32":
             raise AdResolutionError("AdsiDirectoryResolver n'est supporté que sous Windows.")
         import win32com.client  # type: ignore
@@ -90,6 +91,8 @@ class Win32ImpersonationBackend(ImpersonationBackend):
     """Backend natif Windows utilisant WTSQueryUserToken et ImpersonateLoggedOnUser."""
 
     def __init__(self) -> None:
+        self._win32sec: Any = None
+        self._win32ts: Any = None
         if sys.platform != "win32":
             raise ImpersonationError("Win32ImpersonationBackend n'est supporté que sous Windows.")
         import win32security  # type: ignore
@@ -104,7 +107,7 @@ class Win32ImpersonationBackend(ImpersonationBackend):
             session_id = self._win32ts.WTSGetActiveConsoleSessionId()
             if session_id == 0xFFFFFFFF:
                 return None
-            return session_id
+            return int(session_id)
         except Exception:
             return None
 

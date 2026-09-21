@@ -47,13 +47,13 @@ def build_versioned_destination(dest_path: str, version_tag: str) -> str:
     Ex: \\\\srv\\rapport.docx + __20260908_1430 -> \\\\srv\\rapport__20260908_1430.docx
     """
     if dest_path.startswith("/") and sys.platform != "win32":
-        path_obj = Path(dest_path)
-        return str(path_obj.parent / f"{path_obj.stem}{version_tag}{path_obj.suffix}")
+        path_posix = Path(dest_path)
+        return str(path_posix.parent / f"{path_posix.stem}{version_tag}{path_posix.suffix}")
 
-    path_obj = PureWindowsPath(dest_path)
-    stem = path_obj.stem
-    suffix = path_obj.suffix
-    parent = path_obj.parent
+    path_win = PureWindowsPath(dest_path)
+    stem = path_win.stem
+    suffix = path_win.suffix
+    parent = path_win.parent
 
     versioned_name = f"{stem}{version_tag}{suffix}"
     return str(parent / versioned_name)
@@ -76,7 +76,7 @@ class NetworkBackoffTracker:
         delay = min(self.initial_delay_s * (2 ** (self.consecutive_failures - 1)), self.max_delay_s)
         self.current_delay_s = delay
         self.next_retry_time = time.time() + delay
-        return delay
+        return float(delay)
 
     def record_success(self) -> None:
         """Réinitialise les compteurs suite à un transfert réussi."""
@@ -137,7 +137,7 @@ class BackupEngine:
 
         bytes_copied = 0
         throttle = bandwidth_limit_kbps is not None and bandwidth_limit_kbps > 0
-        bytes_per_sec = (bandwidth_limit_kbps * 1024) if throttle else 0
+        bytes_per_sec = (bandwidth_limit_kbps * 1024) if (throttle and bandwidth_limit_kbps is not None) else 0
 
         try:
             with open(source_path, "rb") as fsrc, open(dest_part, "wb") as fdst:

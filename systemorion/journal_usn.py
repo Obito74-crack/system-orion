@@ -94,6 +94,7 @@ class Win32UsnIoctlBackend(UsnIoctlBackend):
     """Implémentation concrète Windows utilisant pywin32 (win32file)."""
 
     def __init__(self) -> None:
+        self._win32: Any = None
         if sys.platform != "win32":
             raise UsnError("Win32UsnIoctlBackend n'est supporté que sous Windows.")
         import win32file  # type: ignore

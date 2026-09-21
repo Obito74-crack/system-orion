@@ -28,6 +28,10 @@ jobs:
         run: |
           ruff check .
 
+      - name: Run Mypy Type Checker
+        run: |
+          mypy systemorion
+
   tests-linux:
     name: Unit & Regression Tests (Linux)
     runs-on: ubuntu-latest
