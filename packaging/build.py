@@ -67,11 +67,16 @@ def sign_binaries(cert_path: str, cert_pass: str) -> None:
             cmd = [
                 signtool,
                 "sign",
-                "/f", cert_path,
-                "/p", cert_pass,
-                "/tr", "http://timestamp.digicert.com",
-                "/td", "sha256",
-                "/fd", "sha256",
+                "/f",
+                cert_path,
+                "/p",
+                cert_pass,
+                "/tr",
+                "http://timestamp.digicert.com",
+                "/td",
+                "sha256",
+                "/fd",
+                "sha256",
                 str(f),
             ]
             run_command(cmd, PROJECT_ROOT, f"Signature de {f.name}")
@@ -114,7 +119,9 @@ def main() -> None:
     parser.add_argument("--skip-pyinstaller", action="store_true", help="Ignorer la passe PyInstaller")
     parser.add_argument("--skip-inno", action="store_true", help="Ignorer l'installateur Inno Setup")
     parser.add_argument("--skip-msi", action="store_true", help="Ignorer le package MSI GPO")
-    parser.add_argument("--cert-file", type=str, default=None, help="Chemin vers le certificat PFX de signature de code")
+    parser.add_argument(
+        "--cert-file", type=str, default=None, help="Chemin vers le certificat PFX de signature de code"
+    )
     parser.add_argument("--cert-pass", type=str, default=None, help="Mot de passe du certificat de signature")
 
     args = parser.parse_args()

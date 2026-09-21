@@ -36,9 +36,7 @@ def gui_window(qapp: QApplication) -> MainWindow:
     """Fixture fournissant une MainWindow initialisée avec backend mémoire."""
     backend = DictRegistryBackend()
     cfg_mgr = ConfigManager(backend=backend)
-    resolver = MockAdDirectoryResolver(
-        user_directories={"domaine\\utilisateur": r"\\srv\home\utilisateur"}
-    )
+    resolver = MockAdDirectoryResolver(user_directories={"domaine\\utilisateur": r"\\srv\home\utilisateur"})
     window = MainWindow(config_mgr=cfg_mgr, ad_resolver=resolver)
     window.show()
     yield window
@@ -69,9 +67,7 @@ def test_initial_data_population(gui_window: MainWindow) -> None:
     assert targets_count == len(gui_window.working_config.target_paths)
 
     ignored_count = gui_window.list_ignored.count()
-    expected_ignored = len(gui_window.working_config.excluded_dirs) + len(
-        gui_window.working_config.exclusion_patterns
-    )
+    expected_ignored = len(gui_window.working_config.excluded_dirs) + len(gui_window.working_config.exclusion_patterns)
     assert ignored_count == expected_ignored
 
 

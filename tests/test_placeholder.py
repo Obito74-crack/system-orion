@@ -7,4 +7,5 @@ Chaque critère d'acceptation (section 11 du CDC) doit correspondre à terme
 
 def test_smoke():
     import systemorion
+
     assert systemorion.__version__ == "0.1.0"

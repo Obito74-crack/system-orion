@@ -58,9 +58,7 @@ class WinregBackend(RegistryBackend):
 
     def key_exists(self, key_path: str) -> bool:
         try:
-            with self._winreg.OpenKey(
-                self._winreg.HKEY_LOCAL_MACHINE, key_path, 0, self._winreg.KEY_READ
-            ):
+            with self._winreg.OpenKey(self._winreg.HKEY_LOCAL_MACHINE, key_path, 0, self._winreg.KEY_READ):
                 return True
         except (FileNotFoundError, OSError):
             return False
@@ -68,9 +66,7 @@ class WinregBackend(RegistryBackend):
     def read_values(self, key_path: str) -> dict[str, Any]:
         values: dict[str, Any] = {}
         try:
-            with self._winreg.OpenKey(
-                self._winreg.HKEY_LOCAL_MACHINE, key_path, 0, self._winreg.KEY_READ
-            ) as key:
+            with self._winreg.OpenKey(self._winreg.HKEY_LOCAL_MACHINE, key_path, 0, self._winreg.KEY_READ) as key:
                 index = 0
                 while True:
                     try:

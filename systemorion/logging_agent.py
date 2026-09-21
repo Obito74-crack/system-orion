@@ -170,7 +170,9 @@ class OrionLogger:
 
     def log_usn_rotation(self, volume: str, reason: str) -> None:
         """CDC EF-04 : Rotation de journal détectée, déclenchement sauvegarde de référence."""
-        msg = f"Rotation du journal USN détectée sur {volume}: {reason}. Déclenchement sauvegarde complète de référence."
+        msg = (
+            f"Rotation du journal USN détectée sur {volume}: {reason}. Déclenchement sauvegarde complète de référence."
+        )
         self.logger.error(msg)
         self.event_backend.report_event(self.EVT_USN_ROTATION, 1, msg)
 

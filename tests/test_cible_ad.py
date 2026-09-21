@@ -84,6 +84,7 @@ def test_user_impersonation_reverts_on_error() -> None:
 
     assert backend.is_impersonating is False
 
+
 def test_user_impersonation_no_session_raises() -> None:
     """Si aucune session interactive n'existe, lever une ImpersonationError."""
     backend = MockImpersonationBackend(active_session=None)

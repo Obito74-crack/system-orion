@@ -122,8 +122,8 @@ class MainWindow(QMainWindow):
         self.screen_main = self._build_screen_1_main()
         self.screen_folders = self._build_screen_2_folders()
 
-        self.stack.addWidget(self.screen_main)      # Index 0
-        self.stack.addWidget(self.screen_folders)   # Index 1
+        self.stack.addWidget(self.screen_main)  # Index 0
+        self.stack.addWidget(self.screen_folders)  # Index 1
         root_layout.addWidget(self.stack)
 
     # -----------------------------------------------------------------------
@@ -484,13 +484,13 @@ class MainWindow(QMainWindow):
         # 2. Test de connectivité préalable proposé (EF-01a)
         if server_val.startswith(r"\\") and not os.path.exists(server_val):
             res = QMessageBox.warning(
-                    self,
-                    "Avertissement connectivité réseau",
-                    f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
-                    "Voulez-vous tout de même enregistrer cette configuration ?\n"
-                    "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
-                    QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
-                    QMessageBox.StandardButton.Save,
+                self,
+                "Avertissement connectivité réseau",
+                f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
+                "Voulez-vous tout de même enregistrer cette configuration ?\n"
+                "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
             )
             if res != QMessageBox.StandardButton.Save:
                 return

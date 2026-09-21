@@ -246,9 +246,7 @@ if sys.platform == "win32":
 
             _svc_name_ = "SystemOrion"
             _svc_display_name_ = "System Orion Backup Agent"
-            _svc_description_ = (
-                "Agent de sauvegarde silencieuse et continue des postes de travail (System Orion)"
-            )
+            _svc_description_ = "Agent de sauvegarde silencieuse et continue des postes de travail (System Orion)"
 
             def __init__(self, args: list[str]) -> None:
                 super().__init__(args)

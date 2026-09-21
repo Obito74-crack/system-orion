@@ -225,4 +225,6 @@ def execute_with_vss_fallback(
             if attempt < max_retries:
                 time.sleep(retry_delay_s * attempt)
 
-    raise VssError(f"Impossible d'accéder au fichier '{source_file}' après {max_retries} tentatives: {last_err}") from last_err
+    raise VssError(
+        f"Impossible d'accéder au fichier '{source_file}' après {max_retries} tentatives: {last_err}"
+    ) from last_err

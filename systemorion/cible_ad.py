@@ -118,9 +118,7 @@ class Win32ImpersonationBackend(ImpersonationBackend):
             self._win32sec.ImpersonateLoggedOnUser(token)
             return token
         except Exception as e:
-            raise ImpersonationError(
-                f"Impossible d'emprunter l'identité de la session {session_id}: {e}"
-            ) from e
+            raise ImpersonationError(f"Impossible d'emprunter l'identité de la session {session_id}: {e}") from e
 
     def revert_to_self(self, token_handle: Any) -> None:
         try:

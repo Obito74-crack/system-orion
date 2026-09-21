@@ -137,9 +137,7 @@ class Win32UsnIoctlBackend(UsnIoctlBackend):
                 56,
                 None,
             )
-            journal_id, first_usn, next_usn, _, _, max_size, alloc_delta = struct.unpack(
-                "<QqqqqQQ", out_buf[:56]
-            )
+            journal_id, first_usn, next_usn, _, _, max_size, alloc_delta = struct.unpack("<QqqqqQQ", out_buf[:56])
             return UsnJournalData(
                 journal_id=journal_id,
                 first_usn=first_usn,
@@ -321,10 +319,7 @@ class UsnJournalReader:
 
         # Règle 1 de rotation : L'identifiant du journal a changé (EF-04)
         if progress.journal_id != current.journal_id:
-            msg = (
-                f"Identifiant de journal modifié (précédent: {progress.journal_id}, "
-                f"actuel: {current.journal_id})"
-            )
+            msg = f"Identifiant de journal modifié (précédent: {progress.journal_id}, actuel: {current.journal_id})"
             return (True, msg, utilization_pct)
 
         # Règle 2 de rotation : Le dernier USN traité a été tronqué (EF-04)

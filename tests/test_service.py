@@ -35,9 +35,7 @@ def test_environment(tmp_path: Path):
     orion_logger = OrionLogger(log_dir=cfg.log_dir, event_backend=event_backend)
     state_db = StateDB(cfg.state_db_path)
 
-    ad_resolver = MockAdDirectoryResolver(
-        user_directories={"testuser": r"\\srv\home\testuser"}
-    )
+    ad_resolver = MockAdDirectoryResolver(user_directories={"testuser": r"\\srv\home\testuser"})
     impersonation_backend = MockImpersonationBackend(active_session=1)
     usn_backend = MockUsnIoctlBackend()
     vss_backend = MockVssBackend()

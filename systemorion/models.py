@@ -150,31 +150,49 @@ class OrionConfig:
     """
 
     # Arborescences à sauvegarder (EF-01)
-    target_paths: list[str] = field(default_factory=lambda: [
-        r"~\Documents",
-        r"~\Desktop",
-        r"~\Pictures",
-        r"~\Favorites",
-    ])
+    target_paths: list[str] = field(
+        default_factory=lambda: [
+            r"~\Documents",
+            r"~\Desktop",
+            r"~\Pictures",
+            r"~\Favorites",
+        ]
+    )
 
     # Exclusions (EF-05)
-    exclusion_patterns: list[str] = field(default_factory=lambda: [
-        "*.tmp", "*.temp", "~$*", "*.lnk",
-        "thumbs.db", "desktop.ini",
-    ])
-    exclusion_extensions: list[str] = field(default_factory=lambda: [
-        ".tmp", ".temp", ".bak", ".swp", ".swo",
-        ".pyc", ".pyo", ".log",
-    ])
-    excluded_dirs: list[str] = field(default_factory=lambda: [
-        "$RECYCLE.BIN",
-        "AppData",
-        "node_modules",
-        ".git",
-        "__pycache__",
-        ".venv",
-        "venv",
-    ])
+    exclusion_patterns: list[str] = field(
+        default_factory=lambda: [
+            "*.tmp",
+            "*.temp",
+            "~$*",
+            "*.lnk",
+            "thumbs.db",
+            "desktop.ini",
+        ]
+    )
+    exclusion_extensions: list[str] = field(
+        default_factory=lambda: [
+            ".tmp",
+            ".temp",
+            ".bak",
+            ".swp",
+            ".swo",
+            ".pyc",
+            ".pyo",
+            ".log",
+        ]
+    )
+    excluded_dirs: list[str] = field(
+        default_factory=lambda: [
+            "$RECYCLE.BIN",
+            "AppData",
+            "node_modules",
+            ".git",
+            "__pycache__",
+            ".venv",
+            "venv",
+        ]
+    )
 
     # Cible réseau (D5, EF-03)
     unc_override: str | None = None  # Si différent de homeDirectory AD

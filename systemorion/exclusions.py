@@ -32,8 +32,7 @@ class ExclusionEngine:
         """Charge et prépare les règles de filtrage."""
         # 1. Arborescences cibles sous forme d'objets PureWindowsPath
         self.target_paths: list[PureWindowsPath] = [
-            PureWindowsPath(expand_path(p, self.user_profile))
-            for p in config.target_paths
+            PureWindowsPath(expand_path(p, self.user_profile)) for p in config.target_paths
         ]
 
         # 2. Motifs de noms de fichiers (ex: *.tmp, ~$*)
@@ -41,8 +40,7 @@ class ExclusionEngine:
 
         # 3. Extensions exclues (ex: .tmp, .bak)
         self.extensions: set[str] = {
-            ext.lower() if ext.startswith(".") else f".{ext.lower()}"
-            for ext in config.exclusion_extensions
+            ext.lower() if ext.startswith(".") else f".{ext.lower()}" for ext in config.exclusion_extensions
         }
 
         # 4. Répertoires exclus (comparaison sur les composants du chemin)
