@@ -13,9 +13,6 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -92,10 +89,10 @@ class TransferRecord:
     file_size: int
     state: TransferState
     enqueued_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     attempt_count: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,7 +177,7 @@ class OrionConfig:
     ])
 
     # Cible réseau (D5, EF-03)
-    unc_override: Optional[str] = None  # Si différent de homeDirectory AD
+    unc_override: str | None = None  # Si différent de homeDirectory AD
     backup_subfolder: str = "SystemOrion"  # Sous-dossier dans homeDirectory
 
     # Rétention (EF-08)
@@ -193,7 +190,7 @@ class OrionConfig:
     usn_min_coverage_hours: int = 72
 
     # Résilience réseau (EF-12)
-    bandwidth_limit_kbps: Optional[int] = None
+    bandwidth_limit_kbps: int | None = None
     reconnect_jitter_max_s: int = 900  # 0-15 min par défaut
     backoff_initial_s: int = 10
     backoff_max_s: int = 300  # 5 min

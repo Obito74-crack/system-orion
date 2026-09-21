@@ -13,17 +13,12 @@ from __future__ import annotations
 
 import copy
 import os
-from pathlib import PureWindowsPath
-import platform
 import sys
-from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
-    QDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -39,12 +34,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from systemorion import __version__
 from systemorion.cible_ad import (
     AdDirectoryResolver,
     AdsiDirectoryResolver,
     MockAdDirectoryResolver,
-    resolve_backup_destination,
 )
 from systemorion.config import ConfigManager
 from systemorion.gui.theme import ADWAITA_DARK_QSS
@@ -56,9 +49,9 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        config_mgr: Optional[ConfigManager] = None,
-        ad_resolver: Optional[AdDirectoryResolver] = None,
-        parent: Optional[QWidget] = None,
+        config_mgr: ConfigManager | None = None,
+        ad_resolver: AdDirectoryResolver | None = None,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.config_mgr = config_mgr or ConfigManager()
@@ -489,10 +482,8 @@ class MainWindow(QMainWindow):
         self.working_config.backup_subfolder = self.txt_subfolder.text().strip() or "SystemOrion"
 
         # 2. Test de connectivité préalable proposé (EF-01a)
-        if server_val.startswith(r"\\"):
-            # Test basique d'accessibilité du partage réseau
-            if not os.path.exists(server_val):
-                res = QMessageBox.warning(
+        if server_val.startswith(r"\\") and not os.path.exists(server_val):
+            res = QMessageBox.warning(
                     self,
                     "Avertissement connectivité réseau",
                     f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
@@ -500,9 +491,9 @@ class MainWindow(QMainWindow):
                     "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
                     QMessageBox.Save | QMessageBox.Cancel,
                     QMessageBox.Save,
-                )
-                if res != QMessageBox.Save:
-                    return
+            )
+            if res != QMessageBox.Save:
+                return
 
         # 3. Persistance dans le magasin unique (D7)
         try:

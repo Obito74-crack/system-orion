@@ -6,17 +6,18 @@ Vérifie la conformité avec :
 - Extraction des structures binaires USN_RECORD_V2
 """
 
-from pathlib import Path
 import struct
+from pathlib import Path
 
 import pytest
+
 from systemorion.journal_usn import (
     MockUsnIoctlBackend,
     UsnJournalReader,
     filetime_to_datetime,
     pack_mock_usn_record_v2,
 )
-from systemorion.models import OrionConfig, UsnJournalData, UsnReason
+from systemorion.models import OrionConfig, UsnJournalData
 from systemorion.state import StateDB
 
 

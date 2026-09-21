@@ -12,12 +12,11 @@ Gère :
 from __future__ import annotations
 
 import logging
-import os
-from pathlib import PureWindowsPath
 import platform
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from pathlib import PureWindowsPath
+from typing import Any
 
 from systemorion.models import AdResolutionError, ImpersonationError
 
@@ -28,7 +27,7 @@ class AdDirectoryResolver(ABC):
     """Interface pour interroger Active Directory sur les attributs utilisateur."""
 
     @abstractmethod
-    def get_user_home_directory(self, domain: str, username: str) -> Optional[str]:
+    def get_user_home_directory(self, domain: str, username: str) -> str | None:
         """Retourne le chemin UNC homeDirectory de l'utilisateur ou None si non renseigné."""
         ...
 
@@ -38,12 +37,12 @@ class AdsiDirectoryResolver(AdDirectoryResolver):
 
     def __init__(self) -> None:
         if sys.platform != "win32":
-            raise PlatformError("AdsiDirectoryResolver n'est supporté que sous Windows.")
+            raise AdResolutionError("AdsiDirectoryResolver n'est supporté que sous Windows.")
         import win32com.client  # type: ignore
 
         self._client = win32com.client
 
-    def get_user_home_directory(self, domain: str, username: str) -> Optional[str]:
+    def get_user_home_directory(self, domain: str, username: str) -> str | None:
         try:
             # Recherche via le fournisseur WinNT ou LDAP
             ads_path = f"WinNT://{domain}/{username},user"
@@ -60,10 +59,10 @@ class AdsiDirectoryResolver(AdDirectoryResolver):
 class MockAdDirectoryResolver(AdDirectoryResolver):
     """Backend de simulation Active Directory pour les tests."""
 
-    def __init__(self, user_directories: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, user_directories: dict[str, str] | None = None) -> None:
         self.user_directories = user_directories or {}
 
-    def get_user_home_directory(self, domain: str, username: str) -> Optional[str]:
+    def get_user_home_directory(self, domain: str, username: str) -> str | None:
         key = f"{domain}\\{username}".lower()
         return self.user_directories.get(key) or self.user_directories.get(username.lower())
 
@@ -82,7 +81,7 @@ class ImpersonationBackend(ABC):
         ...
 
     @abstractmethod
-    def get_active_session_id(self) -> Optional[int]:
+    def get_active_session_id(self) -> int | None:
         """Retourne l'ID de la session interactive courante (console ou RDP)."""
         ...
 
@@ -92,14 +91,14 @@ class Win32ImpersonationBackend(ImpersonationBackend):
 
     def __init__(self) -> None:
         if sys.platform != "win32":
-            raise PlatformError("Win32ImpersonationBackend n'est supporté que sous Windows.")
+            raise ImpersonationError("Win32ImpersonationBackend n'est supporté que sous Windows.")
         import win32security  # type: ignore
         import win32ts  # type: ignore
 
         self._win32sec = win32security
         self._win32ts = win32ts
 
-    def get_active_session_id(self) -> Optional[int]:
+    def get_active_session_id(self) -> int | None:
         try:
             # Récupère l'ID de la session console active
             session_id = self._win32ts.WTSGetActiveConsoleSessionId()
@@ -134,12 +133,12 @@ class Win32ImpersonationBackend(ImpersonationBackend):
 class MockImpersonationBackend(ImpersonationBackend):
     """Backend de simulation pour les tests."""
 
-    def __init__(self, active_session: Optional[int] = 1) -> None:
+    def __init__(self, active_session: int | None = 1) -> None:
         self.active_session = active_session
         self.is_impersonating = False
         self.impersonated_sessions: list[int] = []
 
-    def get_active_session_id(self) -> Optional[int]:
+    def get_active_session_id(self) -> int | None:
         return self.active_session
 
     def impersonate_user(self, session_id: int) -> Any:
@@ -159,8 +158,8 @@ class UserImpersonation:
 
     def __init__(
         self,
-        session_id: Optional[int] = None,
-        backend: Optional[ImpersonationBackend] = None,
+        session_id: int | None = None,
+        backend: ImpersonationBackend | None = None,
     ) -> None:
         if backend is not None:
             self.backend = backend
@@ -190,7 +189,7 @@ def resolve_backup_destination(
     source_file_path: str,
     base_target_path: str,
     user_home_dir: str,
-    computer_name: Optional[str] = None,
+    computer_name: str | None = None,
     subfolder_name: str = "SystemOrion",
 ) -> str:
     r"""Construit le chemin UNC absolu de destination pour un fichier source (CDC EF-03).

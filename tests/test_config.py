@@ -7,6 +7,7 @@ Vérifie la conformité avec :
 """
 
 import pytest
+
 from systemorion.config import (
     GPO_POLICY_KEY,
     REGISTRY_BASE_KEY,

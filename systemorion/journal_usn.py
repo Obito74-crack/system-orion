@@ -14,11 +14,11 @@ from __future__ import annotations
 
 import datetime
 import logging
-import os
 import struct
 import sys
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from systemorion.models import (
     OrionConfig,
@@ -44,9 +44,9 @@ def filetime_to_datetime(filetime: int) -> datetime.datetime:
     """Convertit un timestamp Windows FILETIME (intervalles de 100ns) en datetime UTC."""
     try:
         us = (filetime // 10) - FILETIME_EPOCH_DIFF_US
-        return datetime.datetime.fromtimestamp(us / 1_000_000, tz=datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(us / 1_000_000, tz=datetime.UTC)
     except (ValueError, OSError, OverflowError):
-        return datetime.datetime.now(datetime.timezone.utc)
+        return datetime.datetime.now(datetime.UTC)
 
 
 class UsnIoctlBackend(ABC):
@@ -95,7 +95,7 @@ class Win32UsnIoctlBackend(UsnIoctlBackend):
 
     def __init__(self) -> None:
         if sys.platform != "win32":
-            raise PlatformError("Win32UsnIoctlBackend n'est supporté que sous Windows.")
+            raise UsnError("Win32UsnIoctlBackend n'est supporté que sous Windows.")
         import win32file  # type: ignore
 
         self._win32 = win32file
@@ -204,7 +204,7 @@ class Win32UsnIoctlBackend(UsnIoctlBackend):
 class MockUsnIoctlBackend(UsnIoctlBackend):
     """Backend de simulation pour les tests unitaires et plateformes de dev."""
 
-    def __init__(self, initial_journal: Optional[UsnJournalData] = None) -> None:
+    def __init__(self, initial_journal: UsnJournalData | None = None) -> None:
         self.journal_data = initial_journal or UsnJournalData(
             journal_id=123456789,
             first_usn=1000,
@@ -261,7 +261,7 @@ class UsnJournalReader:
         volume: str,
         state_db: StateDB,
         config: OrionConfig,
-        backend: Optional[UsnIoctlBackend] = None,
+        backend: UsnIoctlBackend | None = None,
     ) -> None:
         self.volume = volume.upper().rstrip("\\")
         if not self.volume.endswith(":"):
@@ -442,7 +442,7 @@ def pack_mock_usn_record_v2(
     padding = b"\x00" * (rec_len - (name_offset + name_len))
 
     # FILETIME actuel
-    now_ft = int((datetime.datetime.now(datetime.timezone.utc).timestamp() * 1_000_000 + FILETIME_EPOCH_DIFF_US) * 10)
+    now_ft = int((datetime.datetime.now(datetime.UTC).timestamp() * 1_000_000 + FILETIME_EPOCH_DIFF_US) * 10)
 
     header = struct.pack(
         "<IHHQQqqIIIIHH",

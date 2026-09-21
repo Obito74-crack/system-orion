@@ -18,11 +18,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from pathlib import Path
 import sys
 import threading
 import time
-from typing import Optional
 
 from systemorion import __version__
 from systemorion.backup import BackupEngine
@@ -34,13 +32,12 @@ from systemorion.cible_ad import (
     MockImpersonationBackend,
     UserImpersonation,
     Win32ImpersonationBackend,
-    resolve_backup_destination,
 )
 from systemorion.config import ConfigManager
 from systemorion.exclusions import ExclusionEngine
 from systemorion.journal_usn import UsnIoctlBackend, UsnJournalReader
 from systemorion.logging_agent import OrionLogger
-from systemorion.models import BackupStats, OrionConfig, OrionError
+from systemorion.models import BackupStats, OrionConfig
 from systemorion.state import StateDB
 from systemorion.vss import VssBackend
 
@@ -56,14 +53,14 @@ class OrionServiceRunner:
 
     def __init__(
         self,
-        config: Optional[OrionConfig] = None,
-        config_mgr: Optional[ConfigManager] = None,
-        state_db: Optional[StateDB] = None,
-        orion_logger: Optional[OrionLogger] = None,
-        ad_resolver: Optional[AdDirectoryResolver] = None,
-        impersonation_backend: Optional[ImpersonationBackend] = None,
-        usn_backend: Optional[UsnIoctlBackend] = None,
-        vss_backend: Optional[VssBackend] = None,
+        config: OrionConfig | None = None,
+        config_mgr: ConfigManager | None = None,
+        state_db: StateDB | None = None,
+        orion_logger: OrionLogger | None = None,
+        ad_resolver: AdDirectoryResolver | None = None,
+        impersonation_backend: ImpersonationBackend | None = None,
+        usn_backend: UsnIoctlBackend | None = None,
+        vss_backend: VssBackend | None = None,
     ) -> None:
         self.config_mgr = config_mgr or ConfigManager()
         self.config = config or self.config_mgr.load()

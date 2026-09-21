@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import fnmatch
 from pathlib import PureWindowsPath
-from typing import Optional
 
 from systemorion.config import expand_path
 from systemorion.models import OrionConfig
@@ -25,7 +24,7 @@ from systemorion.models import OrionConfig
 class ExclusionEngine:
     """Moteur de décision sauvegarder / ignorer (CDC EF-05)."""
 
-    def __init__(self, config: OrionConfig, user_profile: Optional[str] = None) -> None:
+    def __init__(self, config: OrionConfig, user_profile: str | None = None) -> None:
         self.user_profile = user_profile
         self._load_rules(config)
 
@@ -49,7 +48,7 @@ class ExclusionEngine:
         # 4. Répertoires exclus (comparaison sur les composants du chemin)
         self.excluded_dirs: set[str] = {d.lower() for d in config.excluded_dirs}
 
-    def reload(self, config: OrionConfig, user_profile: Optional[str] = None) -> None:
+    def reload(self, config: OrionConfig, user_profile: str | None = None) -> None:
         """Recharge les règles après une modification de configuration."""
         if user_profile is not None:
             self.user_profile = user_profile
@@ -69,7 +68,7 @@ class ExclusionEngine:
     def should_exclude(
         self,
         file_path: str,
-        file_size: Optional[int] = None,
+        file_size: int | None = None,
         check_target: bool = True,
     ) -> tuple[bool, str]:
         """Évalue si un fichier doit être ignoré.

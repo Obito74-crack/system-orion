@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from systemorion.models import ConfigError, OrionConfig
 
@@ -50,7 +50,7 @@ class WinregBackend(RegistryBackend):
 
     def __init__(self) -> None:
         if sys.platform != "win32":
-            raise PlatformError("WinregBackend n'est supporté que sous Windows.")
+            raise ConfigError("WinregBackend n'est supporté que sous Windows.")
         import winreg  # type: ignore
 
         self._winreg = winreg
@@ -99,7 +99,7 @@ class WinregBackend(RegistryBackend):
 class DictRegistryBackend(RegistryBackend):
     """Backend en mémoire pour les tests et le développement non-Windows."""
 
-    def __init__(self, initial_data: Optional[dict[str, dict[str, Any]]] = None) -> None:
+    def __init__(self, initial_data: dict[str, dict[str, Any]] | None = None) -> None:
         self._store: dict[str, dict[str, Any]] = initial_data or {}
 
     def key_exists(self, key_path: str) -> bool:
@@ -128,7 +128,7 @@ class ConfigManager:
     REG_DWORD = 4
     REG_MULTI_SZ = 7
 
-    def __init__(self, backend: Optional[RegistryBackend] = None) -> None:
+    def __init__(self, backend: RegistryBackend | None = None) -> None:
         if backend is not None:
             self._backend = backend
         elif sys.platform == "win32":
@@ -258,11 +258,12 @@ class ConfigManager:
         return defaults
 
 
-def expand_path(path_template: str, user_profile: Optional[str] = None) -> str:
+def expand_path(path_template: str, user_profile: str | None = None) -> str:
     """Étend les variables de chemin comme ~ ou %USERPROFILE%."""
     if path_template.startswith("~"):
         base = user_profile or os.path.expanduser("~")
         suffix = path_template[1:].lstrip("\\/")
         sep = "\\" if "\\" in base or "\\" in path_template else "/"
-        return f"{base.rstrip(r'\/')}{sep}{suffix}" if suffix else base
+        base_clean = base.rstrip("\\/")
+        return f"{base_clean}{sep}{suffix}" if suffix else base
     return os.path.expandvars(path_template)

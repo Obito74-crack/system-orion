@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WiX Toolset v3 source file for System Orion MSI deployment (CDC EF-02, ET-01) -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="System Orion"
+           Language="1036"
+           Version="0.1.0.0"
+           Manufacturer="System Orion Enterprise"
+           UpgradeCode="B4D7E2F8-48A1-42B9-A2C3-5D698E1A7F41">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="System Orion — Agent de sauvegarde silencieuse des postes de travail d'entreprise"
+             Comments="Package MSI pour déploiement par stratégie de groupe (GPO)" />
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de System Orion est déjà installée sur ce poste."
+                  AllowSameVersionUpgrades="yes" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Arborescence des répertoires d'installation -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- C:\Program Files\SystemOrion -->
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="SystemOrion" />
+      </Directory>
+
+      <!-- C:\ProgramData\SystemOrion -->
+      <Directory Id="CommonAppDataFolder">
+        <Directory Id="AppDataSystemOrion" Name="SystemOrion">
+          <Directory Id="LogsFolder" Name="logs" />
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <!-- Définition des composants principaux -->
+    <ComponentGroup Id="ProductComponents">
+
+      <!-- Fichiers exécutables -->
+      <Component Id="C_SystemOrionService" Directory="INSTALLFOLDER" Win64="yes" Guid="11223344-5566-7788-99AA-BBCCDDEEFF01">
+        <File Id="F_SystemOrionServiceExe" Source="dist\SystemOrion\SystemOrionService.exe" KeyPath="yes" />
+
+        <!-- Installation native du service Windows SYSTEM (D1, ET-03) -->
+        <ServiceInstall Id="ServiceInstaller"
+                        Type="ownProcess"
+                        Name="SystemOrion"
+                        DisplayName="System Orion"
+                        Description="Agent de sauvegarde automatique et silencieuse des postes de travail vers le partage d'entreprise."
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Vital="yes" />
+
+        <!-- Contrôle du cycle de vie du service (démarrage à l'install, arrêt/suppression à l'uninstall) -->
+        <ServiceControl Id="ServiceControl"
+                        Name="SystemOrion"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall"
+                        Wait="yes" />
+      </Component>
+
+      <!-- Panneau d'administration graphique -->
+      <Component Id="C_SystemOrionAdmin" Directory="INSTALLFOLDER" Win64="yes" Guid="11223344-5566-7788-99AA-BBCCDDEEFF02">
+        <File Id="F_SystemOrionAdminExe" Source="dist\SystemOrion\SystemOrionAdmin.exe" KeyPath="yes" />
+      </Component>
+
+      <!-- Dossier ProgramData et permissions -->
+      <Component Id="C_AppDataDirectories" Directory="LogsFolder" Win64="yes" Guid="11223344-5566-7788-99AA-BBCCDDEEFF03">
+        <CreateFolder>
+          <Permission User="SYSTEM" GenericAll="yes" />
+          <Permission User="Administrators" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+
+      <!-- Inscription registre HKLM\SOFTWARE\SystemOrion (CDC D7) -->
+      <Component Id="C_RegistrySettings" Directory="INSTALLFOLDER" Win64="yes" Guid="11223344-5566-7788-99AA-BBCCDDEEFF04">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\SystemOrion">
+          <RegistryValue Type="string" Name="InstallDir" Value="[INSTALLFOLDER]" KeyPath="yes" />
+          <RegistryValue Type="string" Name="LogDir" Value="[CommonAppDataFolder]SystemOrion\logs" />
+          <RegistryValue Type="string" Name="StateDbPath" Value="[CommonAppDataFolder]SystemOrion\state.db" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- Fonctionnalité principale -->
+    <Feature Id="ProductFeature" Title="System Orion Core" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+
+  </Product>
+</Wix>

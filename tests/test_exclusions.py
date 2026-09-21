@@ -7,6 +7,7 @@ Vérifie la conformité avec :
 """
 
 import pytest
+
 from systemorion.exclusions import ExclusionEngine
 from systemorion.models import OrionConfig
 

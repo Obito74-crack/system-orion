@@ -9,7 +9,6 @@ Vérifie la conformité avec :
 
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -17,10 +16,10 @@ import pytest
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtWidgets import QApplication, QMessageBox
+
 from systemorion.cible_ad import MockAdDirectoryResolver
 from systemorion.config import ConfigManager, DictRegistryBackend
 from systemorion.gui.main_window import MainWindow
-from systemorion.models import OrionConfig
 
 
 @pytest.fixture(scope="session")

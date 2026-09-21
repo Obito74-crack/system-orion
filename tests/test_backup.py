@@ -6,19 +6,20 @@ Vérifie la conformité avec :
 - CDC EF-12 : Découplage, transfert atomique (.part -> rename), backoff exponentiel
 """
 
-from datetime import datetime, timezone
 import os
-from pathlib import Path
 import time
+from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
+
 from systemorion.backup import (
     BackupEngine,
     NetworkBackoffTracker,
     build_versioned_destination,
     generate_version_tag,
 )
-from systemorion.models import OrionConfig, TransferRecord, TransferState
+from systemorion.models import OrionConfig, TransferState
 from systemorion.state import StateDB
 
 
@@ -45,7 +46,7 @@ def engine(state_db: StateDB, config: OrionConfig) -> BackupEngine:
 
 def test_version_tag_and_destination_builder() -> None:
     """CDC EF-08 : Format __YYYYMMDD_HHMM et intégration dans le chemin."""
-    dt = datetime(2026, 9, 8, 14, 30, tzinfo=timezone.utc)
+    dt = datetime(2026, 9, 8, 14, 30, tzinfo=UTC)
     tag = generate_version_tag(dt)
     assert tag == "__20260908_1430"
 
@@ -78,7 +79,7 @@ def test_process_transfer_item_lifecycle(engine: BackupEngine, state_db: StateDB
 
     dest = tmp_path / "backup_share" / "doc.txt"
 
-    tid = state_db.enqueue_transfer(str(src), str(dest), file_size=100)
+    state_db.enqueue_transfer(str(src), str(dest), file_size=100)
     item = state_db.get_pending_transfers()[0]
 
     success, copied, err = engine.process_transfer_item(item)

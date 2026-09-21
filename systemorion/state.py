@@ -12,9 +12,9 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from systemorion.models import BackupRecord, StateError, TransferRecord, TransferState, UsnProgress
 
@@ -34,7 +34,7 @@ class StateDB:
     def __init__(self, db_path: Path | str = r"C:\ProgramData\SystemOrion\state.db") -> None:
         self.db_path = Path(db_path)
         self._lock = threading.RLock()
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._initialize_db()
 
     def _get_connection(self) -> sqlite3.Connection:
@@ -141,7 +141,7 @@ class StateDB:
             # Initialisation version schéma
             cur.execute("SELECT version FROM schema_info WHERE version = ?;", (self.SCHEMA_VERSION,))
             if not cur.fetchone():
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(UTC).isoformat()
                 cur.execute(
                     "INSERT INTO schema_info (version, updated_at) VALUES (?, ?);",
                     (self.SCHEMA_VERSION, now),
@@ -167,7 +167,7 @@ class StateDB:
     # USN Progress (EF-04)
     # -----------------------------------------------------------------------
 
-    def get_usn_progress(self, volume: str) -> Optional[UsnProgress]:
+    def get_usn_progress(self, volume: str) -> UsnProgress | None:
         """Récupère le dernier USN traité et l'identifiant du journal pour un volume."""
         with self._lock:
             conn = self._get_connection()
@@ -191,7 +191,7 @@ class StateDB:
         with self._lock:
             conn = self._get_connection()
             cur = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             cur.execute("BEGIN IMMEDIATE;")
             try:
                 cur.execute(
@@ -224,7 +224,7 @@ class StateDB:
         with self._lock:
             conn = self._get_connection()
             cur = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             cur.execute("BEGIN IMMEDIATE;")
             try:
                 cur.execute(
@@ -263,7 +263,7 @@ class StateDB:
                 cur.execute("ROLLBACK;")
                 raise StateError(f"Impossible d'enfiler le transfert '{source_path}': {e}") from e
 
-    def get_pending_transfers(self, limit: Optional[int] = None) -> list[TransferRecord]:
+    def get_pending_transfers(self, limit: int | None = None) -> list[TransferRecord]:
         """Retourne les transferts en attente ordonnés par date d'insertion."""
         with self._lock:
             conn = self._get_connection()
@@ -281,13 +281,13 @@ class StateDB:
         self,
         transfer_id: int,
         state: TransferState,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Met à jour l'état d'un transfert dans la machine à états."""
         with self._lock:
             conn = self._get_connection()
             cur = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             cur.execute("BEGIN IMMEDIATE;")
             try:
                 if state == TransferState.COPYING:
@@ -411,7 +411,7 @@ class StateDB:
         with self._lock:
             conn = self._get_connection()
             cur = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             cur.execute("BEGIN IMMEDIATE;")
             try:
                 cur.execute(
@@ -433,7 +433,7 @@ class StateDB:
     def get_backup_versions(
         self,
         source_path: str,
-        limit: Optional[int] = None,
+        limit: int | None = None,
     ) -> list[BackupRecord]:
         """Retourne la liste des versions archivées pour un fichier source donné."""
         with self._lock:
@@ -492,7 +492,7 @@ class StateDB:
         with self._lock:
             conn = self._get_connection()
             cur = conn.cursor()
-            now = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(UTC).isoformat()
             cur.execute("BEGIN IMMEDIATE;")
             try:
                 cur.execute(

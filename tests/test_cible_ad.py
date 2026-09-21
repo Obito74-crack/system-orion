@@ -7,6 +7,7 @@ Vérifie la conformité avec :
 """
 
 import pytest
+
 from systemorion.cible_ad import (
     MockAdDirectoryResolver,
     MockImpersonationBackend,
@@ -77,17 +78,17 @@ def test_user_impersonation_reverts_on_error() -> None:
     """CDC D6 : Restauration des privilèges SYSTEM même en cas d'exception."""
     backend = MockImpersonationBackend(active_session=1)
 
-    with pytest.raises(RuntimeError):
-        with UserImpersonation(session_id=1, backend=backend):
-            assert backend.is_impersonating is True
-            raise RuntimeError("Erreur réseau pendant la copie")
+    with pytest.raises(RuntimeError), UserImpersonation(session_id=1, backend=backend):
+        assert backend.is_impersonating is True
+        raise RuntimeError("Erreur réseau pendant la copie")
 
     assert backend.is_impersonating is False
-
 
 def test_user_impersonation_no_session_raises() -> None:
     """Si aucune session interactive n'existe, lever une ImpersonationError."""
     backend = MockImpersonationBackend(active_session=None)
-    with pytest.raises(ImpersonationError, match="Aucune session"):
-        with UserImpersonation(session_id=None, backend=backend):
-            pass
+    with (
+        pytest.raises(ImpersonationError, match="Aucune session"),
+        UserImpersonation(session_id=None, backend=backend),
+    ):
+        pass

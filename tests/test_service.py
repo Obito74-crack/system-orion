@@ -7,14 +7,14 @@ Vérifie la conformité avec :
 """
 
 from pathlib import Path
-import sys
 
 import pytest
+
 from systemorion.cible_ad import MockAdDirectoryResolver, MockImpersonationBackend
 from systemorion.config import ConfigManager, DictRegistryBackend
 from systemorion.journal_usn import MockUsnIoctlBackend
 from systemorion.logging_agent import MemoryEventLogBackend, OrionLogger
-from systemorion.models import OrionConfig, TransferState, UsnJournalData
+from systemorion.models import OrionConfig, TransferState
 from systemorion.service import OrionServiceRunner
 from systemorion.state import StateDB
 from systemorion.vss import MockVssBackend

@@ -12,19 +12,18 @@ Gère :
 
 from __future__ import annotations
 
-from contextlib import nullcontext
 import datetime
 import logging
 import os
-from pathlib import Path, PureWindowsPath
 import shutil
 import sys
 import time
-from typing import Callable, ContextManager, Optional
+from contextlib import AbstractContextManager as ContextManager
+from contextlib import nullcontext
+from pathlib import Path, PureWindowsPath
 
 from systemorion.logging_agent import OrionLogger
 from systemorion.models import (
-    BackupError,
     BackupStats,
     NetworkError,
     OrionConfig,
@@ -36,9 +35,9 @@ from systemorion.state import StateDB
 logger = logging.getLogger("systemorion.backup")
 
 
-def generate_version_tag(dt: Optional[datetime.datetime] = None) -> str:
+def generate_version_tag(dt: datetime.datetime | None = None) -> str:
     """Génère le tag de versioning au format standard CDC EF-08 : __YYYYMMDD_HHMM."""
-    target_dt = dt or datetime.datetime.now(datetime.timezone.utc)
+    target_dt = dt or datetime.datetime.now(datetime.UTC)
     return target_dt.strftime("__%Y%m%d_%H%M")
 
 
@@ -97,7 +96,7 @@ class BackupEngine:
         self,
         state_db: StateDB,
         config: OrionConfig,
-        orion_logger: Optional[OrionLogger] = None,
+        orion_logger: OrionLogger | None = None,
         copy_chunk_size: int = 64 * 1024,  # 64 Ko
     ) -> None:
         self.state_db = state_db
@@ -117,7 +116,7 @@ class BackupEngine:
         self,
         source_path: str,
         dest_path: str,
-        bandwidth_limit_kbps: Optional[int] = None,
+        bandwidth_limit_kbps: int | None = None,
     ) -> int:
         r"""Effectue la copie atomique d'un fichier vers le partage SMB (EF-12).
 
@@ -180,8 +179,8 @@ class BackupEngine:
     def process_transfer_item(
         self,
         item: TransferRecord,
-        source_override: Optional[str] = None,
-    ) -> tuple[bool, int, Optional[str]]:
+        source_override: str | None = None,
+    ) -> tuple[bool, int, str | None]:
         """Traite un fichier individuel de la file d'attente.
 
         Gère le versioning (EF-08), la mise à jour de l'état SQLite,
@@ -235,7 +234,7 @@ class BackupEngine:
     def process_queue(
         self,
         batch_limit: int = 50,
-        impersonation_ctx: Optional[ContextManager] = None,
+        impersonation_ctx: ContextManager | None = None,
     ) -> BackupStats:
         """Dépile et transfère les fichiers en attente (EF-12).
 

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   revision="1.0" schemaVersion="1.0"
+                   xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="SystemOrion" namespace="SystemOrion.Policies" />
+    <using prefix="windows" namespace="Microsoft.Policies.Windows" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <categories>
+    <category name="SystemOrionCategory" displayName="$(string.SystemOrionCategory)" explainText="$(string.SystemOrionCategory_Explain)" />
+    <category name="StorageCategory" displayName="$(string.StorageCategory)" parentCategoryRef="SystemOrionCategory" />
+    <category name="TargetsCategory" displayName="$(string.TargetsCategory)" parentCategoryRef="SystemOrionCategory" />
+    <category name="ExclusionsCategory" displayName="$(string.ExclusionsCategory)" parentCategoryRef="SystemOrionCategory" />
+    <category name="RetentionCategory" displayName="$(string.RetentionCategory)" parentCategoryRef="SystemOrionCategory" />
+    <category name="UsnJournalCategory" displayName="$(string.UsnJournalCategory)" parentCategoryRef="SystemOrionCategory" />
+    <category name="NetworkCategory" displayName="$(string.NetworkCategory)" parentCategoryRef="SystemOrionCategory" />
+  </categories>
+  <policies>
+
+    <!-- Activation de la gestion par GPO -->
+    <policy name="POL_ManagedByGpo" class="Machine" displayName="$(string.POL_ManagedByGpo)"
+            explainText="$(string.POL_ManagedByGpo_Explain)"
+            key="SOFTWARE\Policies\SystemOrion" valueName="ManagedByGpo">
+      <parentCategory ref="SystemOrionCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+
+    <!-- Cible de stockage UNC Override -->
+    <policy name="POL_UncOverride" class="Machine" displayName="$(string.POL_UncOverride)"
+            explainText="$(string.POL_UncOverride_Explain)"
+            presentation="$(presentation.POL_UncOverride)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="StorageCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <text id="UncOverrideValue" valueName="UncOverride" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Sous-dossier de sauvegarde -->
+    <policy name="POL_BackupSubfolder" class="Machine" displayName="$(string.POL_BackupSubfolder)"
+            explainText="$(string.POL_BackupSubfolder_Explain)"
+            presentation="$(presentation.POL_BackupSubfolder)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="StorageCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <text id="BackupSubfolderValue" valueName="BackupSubfolder" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Arborescences à sauvegarder -->
+    <policy name="POL_TargetPaths" class="Machine" displayName="$(string.POL_TargetPaths)"
+            explainText="$(string.POL_TargetPaths_Explain)"
+            presentation="$(presentation.POL_TargetPaths)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="TargetsCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <multiText id="TargetPathsList" valueName="TargetPaths" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Répertoires exclus -->
+    <policy name="POL_ExcludedDirs" class="Machine" displayName="$(string.POL_ExcludedDirs)"
+            explainText="$(string.POL_ExcludedDirs_Explain)"
+            presentation="$(presentation.POL_ExcludedDirs)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="ExclusionsCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <multiText id="ExcludedDirsList" valueName="ExcludedDirs" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Motifs d'exclusion -->
+    <policy name="POL_ExclusionPatterns" class="Machine" displayName="$(string.POL_ExclusionPatterns)"
+            explainText="$(string.POL_ExclusionPatterns_Explain)"
+            presentation="$(presentation.POL_ExclusionPatterns)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="ExclusionsCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <multiText id="ExclusionPatternsList" valueName="ExclusionPatterns" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Extensions exclues -->
+    <policy name="POL_ExclusionExtensions" class="Machine" displayName="$(string.POL_ExclusionExtensions)"
+            explainText="$(string.POL_ExclusionExtensions_Explain)"
+            presentation="$(presentation.POL_ExclusionExtensions)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="ExclusionsCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <multiText id="ExclusionExtensionsList" valueName="ExclusionExtensions" required="true" />
+      </elements>
+    </policy>
+
+    <!-- Rétention : Versions et Durée max -->
+    <policy name="POL_Retention" class="Machine" displayName="$(string.POL_Retention)"
+            explainText="$(string.POL_Retention_Explain)"
+            presentation="$(presentation.POL_Retention)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="RetentionCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <decimal id="RetentionMaxVersions" valueName="RetentionMaxVersions" minValue="1" maxValue="1000" defaultValue="10" />
+        <decimal id="RetentionMaxDays" valueName="RetentionMaxDays" minValue="1" maxValue="3650" defaultValue="90" />
+      </elements>
+    </policy>
+
+    <!-- Journal USN : Taille et seuil d'alerte -->
+    <policy name="POL_UsnJournal" class="Machine" displayName="$(string.POL_UsnJournal)"
+            explainText="$(string.POL_UsnJournal_Explain)"
+            presentation="$(presentation.POL_UsnJournal)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="UsnJournalCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <decimal id="UsnJournalSizeMb" valueName="UsnJournalSizeMb" minValue="32" maxValue="4096" defaultValue="256" />
+        <decimal id="UsnAlertThresholdPct" valueName="UsnAlertThresholdPct" minValue="50" maxValue="99" defaultValue="80" />
+        <decimal id="UsnMinCoverageHours" valueName="UsnMinCoverageHours" minValue="24" maxValue="720" defaultValue="72" />
+      </elements>
+    </policy>
+
+    <!-- Réseau et résilience (EF-12) -->
+    <policy name="POL_NetworkResilience" class="Machine" displayName="$(string.POL_NetworkResilience)"
+            explainText="$(string.POL_NetworkResilience_Explain)"
+            presentation="$(presentation.POL_NetworkResilience)"
+            key="SOFTWARE\Policies\SystemOrion">
+      <parentCategory ref="NetworkCategory" />
+      <supportedOn ref="windows:SUPPORTED_Windows10" />
+      <elements>
+        <decimal id="BandwidthLimitKbps" valueName="BandwidthLimitKbps" minValue="0" maxValue="1000000" defaultValue="0" />
+        <decimal id="ReconnectJitterMaxS" valueName="ReconnectJitterMaxS" minValue="0" maxValue="3600" defaultValue="900" />
+        <decimal id="BackoffInitialS" valueName="BackoffInitialS" minValue="1" maxValue="300" defaultValue="10" />
+        <decimal id="BackoffMaxS" valueName="BackoffMaxS" minValue="10" maxValue="3600" defaultValue="300" />
+        <decimal id="CycleIntervalS" valueName="CycleIntervalS" minValue="10" maxValue="3600" defaultValue="60" />
+      </elements>
+    </policy>
+
+  </policies>
+</policyDefinitions>

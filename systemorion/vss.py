@@ -17,7 +17,8 @@ import sys
 import threading
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from systemorion.models import VssError
 
@@ -50,7 +51,7 @@ class WmiVssBackend(VssBackend):
 
     def __init__(self) -> None:
         if sys.platform != "win32":
-            raise PlatformError("WmiVssBackend n'est supporté que sous Windows.")
+            raise VssError("WmiVssBackend n'est supporté que sous Windows.")
         import win32com.client  # type: ignore
 
         self._wmi_locator = win32com.client.Dispatch("WbemScripting.SWbemLocator")
@@ -136,7 +137,7 @@ class VssSnapshot:
     def __init__(
         self,
         volume: str = "C:",
-        backend: Optional[VssBackend] = None,
+        backend: VssBackend | None = None,
         timeout_seconds: float = 30.0,
     ) -> None:
         self.volume = volume.upper().rstrip("\\")
@@ -151,8 +152,8 @@ class VssSnapshot:
         else:
             self.backend = MockVssBackend()
 
-        self.snapshot_id: Optional[str] = None
-        self.device_path: Optional[str] = None
+        self.snapshot_id: str | None = None
+        self.device_path: str | None = None
         self._lock_acquired = False
 
     def __enter__(self) -> str:
@@ -189,8 +190,8 @@ class VssSnapshot:
 def execute_with_vss_fallback(
     source_file: str,
     action_fn: Callable[[str], Any],
-    vss_volume: Optional[str] = "C:",
-    vss_backend: Optional[VssBackend] = None,
+    vss_volume: str | None = "C:",
+    vss_backend: VssBackend | None = None,
     max_retries: int = 3,
     retry_delay_s: float = 0.5,
 ) -> Any:
@@ -212,7 +213,7 @@ def execute_with_vss_fallback(
             logger.warning("VSS indisponible (%s), repli sur copie directe avec retries", e)
 
     # 2. Repli sur copie directe avec retries sur verrouillage (EF-06)
-    last_err: Optional[Exception] = None
+    last_err: Exception | None = None
     for attempt in range(1, max_retries + 1):
         try:
             return action_fn(source_file)

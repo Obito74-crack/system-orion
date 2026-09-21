@@ -7,7 +7,7 @@ Vérifie la conformité avec :
 """
 
 import pytest
-from systemorion.models import VssError
+
 from systemorion.vss import MockVssBackend, VssSnapshot, execute_with_vss_fallback
 
 
@@ -28,10 +28,12 @@ def test_vss_guaranteed_cleanup_on_exception() -> None:
     """CDC EF-06 : La suppression du cliché doit être garantie même si une exception survient."""
     mock_backend = MockVssBackend()
 
-    with pytest.raises(ValueError, match="Erreur pendant la lecture"):
-        with VssSnapshot(volume="C:", backend=mock_backend):
-            assert len(mock_backend.created_snapshots) == 1
-            raise ValueError("Erreur pendant la lecture")
+    with (
+        pytest.raises(ValueError, match="Erreur pendant la lecture"),
+        VssSnapshot(volume="C:", backend=mock_backend),
+    ):
+        assert len(mock_backend.created_snapshots) == 1
+        raise ValueError("Erreur pendant la lecture")
 
     # Cliché bien nettoyé malgré l'exception
     assert len(mock_backend.created_snapshots) == 0

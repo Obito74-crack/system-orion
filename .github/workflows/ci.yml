@@ -1,0 +1,96 @@
+name: System Orion CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint-and-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy pytest PySide6 -r requirements-dev.txt
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check .
+
+  tests-linux:
+    name: Unit & Regression Tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 -r requirements-dev.txt
+
+      - name: Run pytest (headless)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          pytest tests/ -v --tb=short
+
+  tests-windows:
+    name: Unit & Windows Integration Tests (Windows Server)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 pywin32 -r requirements-dev.txt
+
+      - name: Run pytest (Windows)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          pytest tests/ -v --tb=short
+
+  build-validation:
+    name: Build & Packaging Validation
+    needs: [tests-linux, tests-windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller PySide6 pywin32 -r requirements-dev.txt
+
+      - name: Test PyInstaller Spec Compilation
+        run: |
+          python -m PyInstaller --clean --noconfirm packaging/systemorion.spec

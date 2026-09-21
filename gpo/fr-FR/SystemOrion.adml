@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           revision="1.0" schemaVersion="1.0"
+                           xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Ressources linguistiques System Orion (Français)</displayName>
+  <description>Fichier de ressources linguistiques pour les modèles d'administration System Orion.</description>
+  <resources>
+    <stringTable>
+      <string id="SystemOrionCategory">System Orion</string>
+      <string id="SystemOrionCategory_Explain">Paramètres de configuration centralisée pour l'agent de sauvegarde d'entreprise System Orion.</string>
+      
+      <string id="StorageCategory">Stockage et Partage SMB</string>
+      <string id="TargetsCategory">Arborescences à sauvegarder</string>
+      <string id="ExclusionsCategory">Règles d'exclusion</string>
+      <string id="RetentionCategory">Versioning et Rétention</string>
+      <string id="UsnJournalCategory">Journal USN NTFS</string>
+      <string id="NetworkCategory">Réseau et Résilience</string>
+
+      <!-- POL_ManagedByGpo -->
+      <string id="POL_ManagedByGpo">Verrouiller la configuration par stratégie d'organisation (ManagedByGpo)</string>
+      <string id="POL_ManagedByGpo_Explain">Active le verrouillage strict de l'interface graphique administrateur (EF-01a). Tous les paramètres sont affichés en lecture seule avec la mention « Géré par votre organisation ».</string>
+
+      <!-- POL_UncOverride -->
+      <string id="POL_UncOverride">Chemin UNC du partage réseau cible (Surcharge)</string>
+      <string id="POL_UncOverride_Explain">Permet de surcharger le chemin UNC de sauvegarde par défaut déterminé via l'attribut Active Directory homeDirectory/homeDrive. Exemple : \\serveur\partage$\utilisateurs</string>
+
+      <!-- POL_BackupSubfolder -->
+      <string id="POL_BackupSubfolder">Sous-dossier de destination sur le partage</string>
+      <string id="POL_BackupSubfolder_Explain">Définit le nom du sous-dossier créé dans l'espace personnel distant. Par défaut : SystemOrion.</string>
+
+      <!-- POL_TargetPaths -->
+      <string id="POL_TargetPaths">Liste des répertoires cibles à sauvegarder</string>
+      <string id="POL_TargetPaths_Explain">Définit les arborescences locales sélectionnées pour la sauvegarde continue (ex: ~\Documents, ~\Desktop, ~\Pictures, ~\Favorites). Les chemins avec '~' sont résolus vers le profil de l'utilisateur connecté.</string>
+
+      <!-- POL_ExcludedDirs -->
+      <string id="POL_ExcludedDirs">Répertoires exclus</string>
+      <string id="POL_ExcludedDirs_Explain">Noms ou segments de dossiers qui ne doivent jamais être explorés ou sauvegardés (ex: $RECYCLE.BIN, AppData, node_modules, .git, .venv).</string>
+
+      <!-- POL_ExclusionPatterns -->
+      <string id="POL_ExclusionPatterns">Motifs de fichiers exclus (Glob patterns)</string>
+      <string id="POL_ExclusionPatterns_Explain">Motifs de fichiers à ignorer (ex: *.tmp, *.temp, ~$*, thumbs.db, desktop.ini).</string>
+
+      <!-- POL_ExclusionExtensions -->
+      <string id="POL_ExclusionExtensions">Extensions de fichiers exclues</string>
+      <string id="POL_ExclusionExtensions_Explain">Extensions de fichiers ignorées systématiquement (ex: .tmp, .bak, .swp, .pyc, .log).</string>
+
+      <!-- POL_Retention -->
+      <string id="POL_Retention">Politique de versioning et rétention</string>
+      <string id="POL_Retention_Explain">Configure le nombre maximal de versions archivées par fichier et la durée maximale de conservation en jours avant purge automatique lors du cycle planifié.</string>
+
+      <!-- POL_UsnJournal -->
+      <string id="POL_UsnJournal">Dimensionnement et alertes du journal USN</string>
+      <string id="POL_UsnJournal_Explain">Définit la taille allouée au journal USN NTFS (en Mo), le seuil d'alerte préventive avant saturation (en %), et la couverture temporelle minimale visée en heures.</string>
+
+      <!-- POL_NetworkResilience -->
+      <string id="POL_NetworkResilience">Résilience réseau et contrôle de bande passante</string>
+      <string id="POL_NetworkResilience_Explain">Configure la limitation de débit (en Ko/s, 0 pour illimité), la gigue maximale de reprise après déconnexion (0-900 s pour éviter la tempête de reconnexion), et la fréquence des cycles de détection.</string>
+    </stringTable>
+
+    <presentationTable>
+      <presentation id="POL_UncOverride">
+        <textBox refId="UncOverrideValue">
+          <label>Chemin UNC cible :</label>
+        </textBox>
+      </presentation>
+
+      <presentation id="POL_BackupSubfolder">
+        <textBox refId="BackupSubfolderValue">
+          <label>Nom du sous-dossier :</label>
+        </textBox>
+      </presentation>
+
+      <presentation id="POL_TargetPaths">
+        <multiTextBox refId="TargetPathsList">
+          <label>Chemins à sauvegarder (un par ligne) :</label>
+        </multiTextBox>
+      </presentation>
+
+      <presentation id="POL_ExcludedDirs">
+        <multiTextBox refId="ExcludedDirsList">
+          <label>Dossiers exclus (un par ligne) :</label>
+        </multiTextBox>
+      </presentation>
+
+      <presentation id="POL_ExclusionPatterns">
+        <multiTextBox refId="ExclusionPatternsList">
+          <label>Motifs exclus (un par ligne) :</label>
+        </multiTextBox>
+      </presentation>
+
+      <presentation id="POL_ExclusionExtensions">
+        <multiTextBox refId="ExclusionExtensionsList">
+          <label>Extensions exclues (une par ligne) :</label>
+        </multiTextBox>
+      </presentation>
+
+      <presentation id="POL_Retention">
+        <decimalTextBox refId="RetentionMaxVersions" defaultValue="10">Nombre max de versions :</decimalTextBox>
+        <decimalTextBox refId="RetentionMaxDays" defaultValue="90">Durée max de rétention (jours) :</decimalTextBox>
+      </presentation>
+
+      <presentation id="POL_UsnJournal">
+        <decimalTextBox refId="UsnJournalSizeMb" defaultValue="256">Taille allouée au journal (Mo) :</decimalTextBox>
+        <decimalTextBox refId="UsnAlertThresholdPct" defaultValue="80">Seuil d'alerte proactively (% d'utilisation) :</decimalTextBox>
+        <decimalTextBox refId="UsnMinCoverageHours" defaultValue="72">Couverture minimale requise (heures) :</decimalTextBox>
+      </presentation>
+
+      <presentation id="POL_NetworkResilience">
+        <decimalTextBox refId="BandwidthLimitKbps" defaultValue="0">Limite de bande passante (Ko/s, 0 = aucune) :</decimalTextBox>
+        <decimalTextBox refId="ReconnectJitterMaxS" defaultValue="900">Gigue max de reconnexion (secondes) :</decimalTextBox>
+        <decimalTextBox refId="BackoffInitialS" defaultValue="10">Backoff initial en cas d'erreur (secondes) :</decimalTextBox>
+        <decimalTextBox refId="BackoffMaxS" defaultValue="300">Backoff maximal (secondes) :</decimalTextBox>
+        <decimalTextBox refId="CycleIntervalS" defaultValue="60">Intervalle des cycles de détection (secondes) :</decimalTextBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

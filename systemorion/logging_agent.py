@@ -9,11 +9,9 @@ Testable hors Windows grâce à l'abstraction du backend Event Log.
 from __future__ import annotations
 
 import logging
-from logging.handlers import RotatingFileHandler
-import os
-from pathlib import Path
 import sys
-from typing import Any, Optional
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from systemorion.models import BackupStats
 
@@ -87,7 +85,7 @@ class OrionLogger:
     def __init__(
         self,
         log_dir: Path | str = r"C:\ProgramData\SystemOrion\logs",
-        event_backend: Optional[EventLogBackend] = None,
+        event_backend: EventLogBackend | None = None,
         max_bytes: int = 10 * 1024 * 1024,  # 10 Mo par fichier
         backup_count: int = 5,
         console: bool = False,
