@@ -180,6 +180,11 @@ class ConfigManager:
             if "BackupSubfolder" in merged:
                 config.backup_subfolder = str(merged["BackupSubfolder"])
 
+            if "StorageType" in merged:
+                config.storage_type = str(merged["StorageType"])
+            if "DrivePath" in merged and merged["DrivePath"]:
+                config.drive_path = str(merged["DrivePath"])
+
             if "RetentionMaxVersions" in merged:
                 config.retention_max_versions = int(merged["RetentionMaxVersions"])
             if "RetentionMaxDays" in merged:
@@ -230,6 +235,8 @@ class ConfigManager:
             "ExcludedDirs": (config.excluded_dirs, self.REG_MULTI_SZ),
             "UncOverride": (config.unc_override or "", self.REG_SZ),
             "BackupSubfolder": (config.backup_subfolder, self.REG_SZ),
+            "StorageType": (config.storage_type, self.REG_SZ),
+            "DrivePath": (config.drive_path or "", self.REG_SZ),
             "RetentionMaxVersions": (config.retention_max_versions, self.REG_DWORD),
             "RetentionMaxDays": (config.retention_max_days, self.REG_DWORD),
             "UsnJournalSizeMb": (config.usn_journal_size_mb, self.REG_DWORD),

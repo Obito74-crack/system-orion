@@ -80,6 +80,7 @@ mindmap
       PyInstaller
         systemorion.spec ✅
         2 binaires Service + Admin ✅
+        upx=False (anti-EDR) ✅
       Inno Setup
         installer.iss ✅
         Mode silencieux /VERYSILENT ✅
@@ -93,6 +94,19 @@ mindmap
         D10 certificat EV ✅
       Orchestrateur
         build.py ✅
+        Version dynamique ✅
+        Vérification prérequis ✅
+        Nettoyage artefacts ✅
+    Backend de Stockage
+      SMB (production Windows)
+        SmbStorageBackend ✅
+        Chemins UNC ✅
+        EF-03 + D5 ✅
+      Drive (tests Linux/macOS)
+        DriveStorageBackend ✅
+        Dossier synchronisé ✅
+        Google Drive / OneDrive ✅
+        Test end-to-end ✅
     Tests & Qualité
       Tests unitaires ✅
         test_service ✅

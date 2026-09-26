@@ -198,6 +198,10 @@ class OrionConfig:
     unc_override: str | None = None  # Si différent de homeDirectory AD
     backup_subfolder: str = "SystemOrion"  # Sous-dossier dans homeDirectory
 
+    # Backend de stockage : "smb" (production Windows) ou "drive" (tests Linux/macOS)
+    storage_type: str = "smb"
+    drive_path: str | None = None  # Dossier local synchronisé (Google Drive, OneDrive...)
+
     # Rétention (EF-08)
     retention_max_versions: int = 10
     retention_max_days: int = 90

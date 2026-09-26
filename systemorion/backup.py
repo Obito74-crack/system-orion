@@ -31,14 +31,19 @@ from systemorion.models import (
     TransferState,
 )
 from systemorion.state import StateDB
+from systemorion.storage_backend import StorageBackend
 
 logger = logging.getLogger("systemorion.backup")
 
 
 def generate_version_tag(dt: datetime.datetime | None = None) -> str:
-    """Génère le tag de versioning au format standard CDC EF-08 : __YYYYMMDD_HHMM."""
+    """Génère le tag de versioning au format standard CDC EF-08 : __YYYYMMDD_HHMMSS.
+
+    La précision à la seconde évite les collisions lors de modifications rapides
+    successives (plusieurs sauvegardes dans la même minute).
+    """
     target_dt = dt or datetime.datetime.now(datetime.UTC)
-    return target_dt.strftime("__%Y%m%d_%H%M")
+    return target_dt.strftime("__%Y%m%d_%H%M%S")
 
 
 def build_versioned_destination(dest_path: str, version_tag: str) -> str:
@@ -98,11 +103,13 @@ class BackupEngine:
         config: OrionConfig,
         orion_logger: OrionLogger | None = None,
         copy_chunk_size: int = 64 * 1024,  # 64 Ko
+        storage_backend: StorageBackend | None = None,
     ) -> None:
         self.state_db = state_db
         self.config = config
         self.orion_logger = orion_logger
         self.copy_chunk_size = copy_chunk_size
+        self.storage_backend = storage_backend
         self.backoff = NetworkBackoffTracker(
             initial_delay_s=float(config.backoff_initial_s),
             max_delay_s=float(config.backoff_max_s),
@@ -131,7 +138,10 @@ class BackupEngine:
         dest_dir = os.path.dirname(dest_path)
         if dest_dir:
             try:
-                os.makedirs(dest_dir, exist_ok=True)
+                if self.storage_backend:
+                    self.storage_backend.ensure_directory(dest_dir)
+                else:
+                    os.makedirs(dest_dir, exist_ok=True)
             except OSError as e:
                 raise NetworkError(f"Impossible de créer le dossier cible '{dest_dir}': {e}") from e
 
@@ -170,7 +180,9 @@ class BackupEngine:
         except (OSError, PermissionError) as e:
             # Nettoyage du fichier partiel en cas d'interruption
             try:
-                if os.path.exists(dest_part):
+                if self.storage_backend:
+                    self.storage_backend.remove_file(dest_part)
+                elif os.path.exists(dest_part):
                     os.remove(dest_part)
             except OSError:
                 pass
@@ -293,7 +305,10 @@ class BackupEngine:
             for record in prunable:
                 # 1. Suppression du fichier distant archivé
                 try:
-                    if os.path.exists(record.dest_path):
+                    if self.storage_backend:
+                        if self.storage_backend.file_exists(record.dest_path):
+                            self.storage_backend.remove_file(record.dest_path)
+                    elif os.path.exists(record.dest_path):
                         os.remove(record.dest_path)
                 except OSError as e:
                     logger.debug("Impossible d'effacer l'ancienne version '%s': %s", record.dest_path, e)
