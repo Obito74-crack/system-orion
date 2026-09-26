@@ -1,5 +1,6 @@
 """Tests de conformité pour les scripts et fichiers de packaging (CDC ET-01, EF-02)."""
 
+import importlib.util
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -8,6 +9,14 @@ SPEC_FILE = PACKAGING_DIR / "systemorion.spec"
 ISS_FILE = PACKAGING_DIR / "installer.iss"
 WXS_FILE = PACKAGING_DIR / "systemorion.wxs"
 BUILD_FILE = PACKAGING_DIR / "build.py"
+
+
+def _load_build_module():
+    """Charge build.py comme module pour tester ses fonctions internes."""
+    spec = importlib.util.spec_from_file_location("build", BUILD_FILE)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_packaging_files_exist() -> None:
@@ -25,6 +34,12 @@ def test_spec_file_content() -> None:
     assert "SystemOrionAdmin" in content
     assert "service.py" in content
     assert "main_window.py" in content
+
+
+def test_spec_upx_disabled() -> None:
+    """Vérifie que UPX est désactivé pour éviter les faux positifs EDR (D10)."""
+    content = SPEC_FILE.read_text(encoding="utf-8")
+    assert "upx=False" in content, "UPX doit être désactivé pour éviter les faux positifs EDR"
 
 
 def test_inno_setup_file_content() -> None:
@@ -51,3 +66,19 @@ def test_wix_file_validity() -> None:
 
     reg_keys = root.findall(".//w:RegistryKey", ns)
     assert any(k.attrib.get("Key") == r"SOFTWARE\SystemOrion" for k in reg_keys)
+
+
+def test_build_get_version() -> None:
+    """Vérifie que get_version() retourne la version du projet."""
+    build = _load_build_module()
+    version = build.get_version()
+    assert isinstance(version, str)
+    assert len(version) > 0
+    assert "." in version
+
+
+def test_build_check_prerequisites() -> None:
+    """Vérifie que check_prerequisites() retourne une liste."""
+    build = _load_build_module()
+    missing = build.check_prerequisites()
+    assert isinstance(missing, list)

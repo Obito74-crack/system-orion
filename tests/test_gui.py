@@ -59,7 +59,7 @@ def test_two_screen_navigation_lifecycle(gui_window: MainWindow) -> None:
 
 def test_initial_data_population(gui_window: MainWindow) -> None:
     """Vérifie le chargement des valeurs par défaut dans les contrôles UI."""
-    assert r"\\srv\home\utilisateur" in gui_window.txt_server_addr.text()
+    assert r"\\serveur\partage\utilisateurs$" in gui_window.txt_server_addr.text()
     assert gui_window.txt_subfolder.text() == "SystemOrion"
 
     # Vérification des ListWidgets sur l'Écran 2
