@@ -8,12 +8,10 @@ Simule un scénario réaliste :
 5. Application de la rétention
 """
 
-import os
 import time
 from pathlib import Path
 
 from systemorion.backup import BackupEngine
-from systemorion.config import ConfigManager, DictRegistryBackend
 from systemorion.logging_agent import OrionLogger
 from systemorion.models import OrionConfig
 from systemorion.state import StateDB
@@ -33,8 +31,6 @@ def test_drive_backup_end_to_end(tmp_path: Path) -> None:
     drive_root = tmp_path / "Drive"
 
     # 3. Configuration
-    backend_reg = DictRegistryBackend()
-    cfg_mgr = ConfigManager(backend=backend_reg)
     config = OrionConfig(
         target_paths=[str(source_dir)],
         storage_type="drive",

@@ -15,9 +15,8 @@ import logging
 import os
 import platform
 import shutil
-import sys
 from abc import ABC, abstractmethod
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path, PureWindowsPath
 
 logger = logging.getLogger("systemorion.storage")
 
