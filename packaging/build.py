@@ -2,16 +2,19 @@
 """Script d'orchestration de compilation et packaging pour System Orion (CDC ET-01, ET-04).
 
 Étapes exécutées :
-1. Compilation PyInstaller (distribution one-dir : Service + Admin GUI)
-2. Signature numérique optionnelle des binaires (D10 / ET-04)
-3. Compilation Inno Setup (.exe d'installation silencieuse /VERYSILENT)
-4. Compilation WiX Toolset (.msi pour déploiement GPO)
+1. Vérification des prérequis (Python 3.11+, PyInstaller)
+2. Nettoyage des artefacts précédents
+3. Compilation PyInstaller (distribution one-dir : Service + Admin GUI)
+4. Signature numérique optionnelle des binaires (D10 / ET-04)
+5. Compilation Inno Setup (.exe d'installation silencieuse /VERYSILENT)
+6. Compilation WiX Toolset (.msi pour déploiement GPO)
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -23,9 +26,45 @@ DIST_DIR = PROJECT_ROOT / "dist"
 OUTPUT_DIR = PACKAGING_DIR / "output"
 
 
+def get_version() -> str:
+    """Lit la version depuis systemorion/__init__.py (source unique de vérité)."""
+    init_file = PROJECT_ROOT / "systemorion" / "__init__.py"
+    content = init_file.read_text(encoding="utf-8")
+    match = re.search(r'__version__\s*=\s*"([^"]+)"', content)
+    if not match:
+        raise RuntimeError("Impossible de lire __version__ depuis systemorion/__init__.py")
+    return match.group(1)
+
+
+def check_prerequisites() -> list[str]:
+    """Vérifie les prérequis et retourne la liste des outils manquants."""
+    missing: list[str] = []
+    if sys.version_info < (3, 11):
+        missing.append(f"Python 3.11+ requis (trouvé: {sys.version.split()[0]})")
+    try:
+        import PyInstaller  # noqa: F401
+    except ImportError:
+        missing.append("PyInstaller (pip install pyinstaller)")
+    return missing
+
+
+def clean_previous_builds() -> None:
+    """Nettoie les artefacts de compilation précédents."""
+    if DIST_DIR.exists():
+        shutil.rmtree(DIST_DIR)
+        print("OK : dossier dist/ supprimé.")
+    if OUTPUT_DIR.exists():
+        shutil.rmtree(OUTPUT_DIR)
+        print("OK : dossier packaging/output/ supprimé.")
+    wix_obj = PACKAGING_DIR / "systemorion.wixobj"
+    if wix_obj.exists():
+        wix_obj.unlink()
+        print("OK : fichier systemorion.wixobj supprimé.")
+
+
 def run_command(cmd: list[str], cwd: Path, desc: str) -> None:
     """Exécute une commande shell et affiche les messages d'état."""
-    print(f"==> [{desc}] : {' '.join(cmd)}")
+    print(f"==>[{desc}] : {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
     if result.returncode != 0:
         print(f"ERREUR lors de {desc} (code {result.returncode}) :", file=sys.stderr)
@@ -97,7 +136,7 @@ def build_inno_setup() -> None:
     run_command(cmd, PACKAGING_DIR, "Création de l'installateur Inno Setup (.exe)")
 
 
-def build_wix_msi() -> None:
+def build_wix_msi(version: str) -> None:
     """Compile le package MSI avec WiX Toolset."""
     candle = shutil.which("candle.exe")
     light = shutil.which("light.exe")
@@ -107,8 +146,9 @@ def build_wix_msi() -> None:
         print("AVERTISSEMENT : WiX Toolset (candle/light) introuvable. Étape MSI ignorée.")
         return
 
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     obj_file = PACKAGING_DIR / "systemorion.wixobj"
-    msi_file = OUTPUT_DIR / "SystemOrion_0.1.0.msi"
+    msi_file = OUTPUT_DIR / f"SystemOrion_{version}.msi"
 
     run_command([candle, "-arch", "x64", str(wxs_file), "-o", str(obj_file)], PACKAGING_DIR, "WiX Candle")
     run_command([light, "-ext", "WixUIExtension", str(obj_file), "-o", str(msi_file)], PACKAGING_DIR, "WiX Light")
@@ -116,6 +156,7 @@ def build_wix_msi() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="System Orion Build & Packaging Orchestrator")
+    parser.add_argument("--skip-clean", action="store_true", help="Ignorer le nettoyage des artefacts précédents")
     parser.add_argument("--skip-pyinstaller", action="store_true", help="Ignorer la passe PyInstaller")
     parser.add_argument("--skip-inno", action="store_true", help="Ignorer l'installateur Inno Setup")
     parser.add_argument("--skip-msi", action="store_true", help="Ignorer le package MSI GPO")
@@ -130,17 +171,36 @@ def main() -> None:
     print("   System Orion — Chaîne de Packaging (ET-01)    ")
     print("==================================================")
 
+    # 0. Vérification des prérequis
+    missing = check_prerequisites()
+    if missing:
+        print("ERREUR : prérequis manquants :", file=sys.stderr)
+        for m in missing:
+            print(f"  - {m}", file=sys.stderr)
+        sys.exit(1)
+
+    version = get_version()
+    print(f"Version détectée : {version}")
+
+    # 1. Nettoyage
+    if not args.skip_clean:
+        clean_previous_builds()
+
+    # 2. Compilation PyInstaller
     if not args.skip_pyinstaller:
         build_pyinstaller()
 
+    # 3. Signature (optionnelle)
     if args.cert_file and args.cert_pass:
         sign_binaries(args.cert_file, args.cert_pass)
 
+    # 4. Inno Setup
     if not args.skip_inno:
         build_inno_setup()
 
+    # 5. WiX MSI
     if not args.skip_msi:
-        build_wix_msi()
+        build_wix_msi(version)
 
     print("\nProcessus de packaging terminé avec succès !")
 

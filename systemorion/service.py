@@ -39,6 +39,7 @@ from systemorion.journal_usn import UsnIoctlBackend, UsnJournalReader
 from systemorion.logging_agent import OrionLogger
 from systemorion.models import BackupStats, OrionConfig
 from systemorion.state import StateDB
+from systemorion.storage_backend import StorageBackend, create_backend
 from systemorion.vss import VssBackend
 
 logger = logging.getLogger("systemorion.service")
@@ -76,6 +77,11 @@ class OrionServiceRunner:
         )
         self.usn_backend = usn_backend
         self.vss_backend = vss_backend
+        self.storage_backend: StorageBackend = create_backend(
+            self.config.storage_type,
+            unc_override=self.config.unc_override,
+            drive_path=self.config.drive_path,
+        )
 
         self.exclusions = ExclusionEngine(self.config)
         self.backup_engine = BackupEngine(
@@ -165,8 +171,9 @@ class OrionServiceRunner:
                         continue
                     exclude, _ = self.exclusions.should_exclude(full_path, file_size=sz)
                     if not exclude:
-                        # Chemin destination par défaut
-                        dest = f"\\\\srv\\backup\\{f}"
+                        dest = self.storage_backend.resolve_destination(
+                            full_path, target, self.config.backup_subfolder
+                        )
                         self.state_db.enqueue_transfer(full_path, dest, sz)
                         enqueued += 1
         logger.info("Sauvegarde complète de référence : %d fichiers mis en file", enqueued)

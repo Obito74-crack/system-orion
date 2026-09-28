@@ -45,13 +45,13 @@ def engine(state_db: StateDB, config: OrionConfig) -> BackupEngine:
 
 
 def test_version_tag_and_destination_builder() -> None:
-    """CDC EF-08 : Format __YYYYMMDD_HHMM et intégration dans le chemin."""
-    dt = datetime(2026, 9, 8, 14, 30, tzinfo=UTC)
+    """CDC EF-08 : Format __YYYYMMDD_HHMMSS et intégration dans le chemin."""
+    dt = datetime(2026, 9, 8, 14, 30, 45, tzinfo=UTC)
     tag = generate_version_tag(dt)
-    assert tag == "__20260908_1430"
+    assert tag == "__20260908_143045"
 
     versioned = build_versioned_destination(r"\\srv\share\rapport.docx", tag)
-    assert versioned.endswith(r"rapport__20260908_1430.docx")
+    assert versioned.endswith(r"rapport__20260908_143045.docx")
 
 
 def test_atomic_file_copy_preserves_mtime(engine: BackupEngine, tmp_path: Path) -> None:

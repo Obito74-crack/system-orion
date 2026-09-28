@@ -95,6 +95,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller PySide6 pywin32 -r requirements-dev.txt
 
+      - name: Validate build.py CLI
+        run: |
+          python packaging/build.py --help
+
       - name: Test PyInstaller Spec Compilation
         run: |
           python -m PyInstaller --clean --noconfirm packaging/systemorion.spec

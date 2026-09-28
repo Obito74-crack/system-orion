@@ -139,3 +139,144 @@ def test_save_persists_to_config_backend(qapp: QApplication, tmp_path: Path, mon
     assert any("MonDossier" in p for p in saved_cfg.target_paths)
 
     window.close()
+
+
+def test_save_drive_storage_type(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
+    """Le mode Drive est sauvegardé avec storage_type='drive' et drive_path."""
+    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: QMessageBox.Ok)
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: QMessageBox.Save)
+
+    # Créer un dossier drive factice
+    drive_dir = tmp_path / "GoogleDrive"
+    drive_dir.mkdir()
+
+    backend = DictRegistryBackend()
+    cfg_mgr = ConfigManager(backend=backend)
+    window = MainWindow(config_mgr=cfg_mgr)
+    window.show()
+
+    # Sélectionner le mode Drive
+    idx = window.combo_location.findData("drive")
+    assert idx >= 0, "L'option Drive doit être présente dans le combo"
+    window.combo_location.setCurrentIndex(idx)
+
+    # Définir le chemin drive
+    window.txt_server_addr.setText(str(drive_dir))
+    window.txt_subfolder.setText("SystemOrion")
+
+    # Sauvegarder
+    window._on_save_clicked()
+
+    # Vérification
+    saved_cfg = cfg_mgr.load()
+    assert saved_cfg.storage_type == "drive"
+    assert saved_cfg.drive_path == str(drive_dir)
+    assert saved_cfg.unc_override is None
+
+    window.close()
+
+
+def test_drive_browse_button_visible_only_in_drive_mode(qapp: QApplication) -> None:
+    """Le bouton Parcourir est visible uniquement en mode Drive."""
+    backend = DictRegistryBackend()
+    cfg_mgr = ConfigManager(backend=backend)
+    window = MainWindow(config_mgr=cfg_mgr)
+    window.show()
+
+    # Mode SMB par défaut : bouton masqué
+    idx_smb = window.combo_location.findData("smb")
+    window.combo_location.setCurrentIndex(idx_smb)
+    assert window.btn_browse_drive.isVisible() is False
+
+    # Mode Drive : bouton visible
+    idx_drive = window.combo_location.findData("drive")
+    window.combo_location.setCurrentIndex(idx_drive)
+    assert window.btn_browse_drive.isVisible() is True
+
+    window.close()
+
+
+def test_drive_save_fails_if_directory_not_exists(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
+    """La sauvegarde drive échoue si le dossier n'existe pas."""
+    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: QMessageBox.Ok)
+
+    warning_called = []
+    original_warning = QMessageBox.warning
+
+    def mock_warning(*args, **kwargs):
+        warning_called.append(True)
+        return QMessageBox.StandardButton.Cancel
+
+    monkeypatch.setattr(QMessageBox, "warning", mock_warning)
+
+    backend = DictRegistryBackend()
+    cfg_mgr = ConfigManager(backend=backend)
+    window = MainWindow(config_mgr=cfg_mgr)
+    window.show()
+
+    # Sélectionner Drive avec un dossier inexistant
+    idx = window.combo_location.findData("drive")
+    window.combo_location.setCurrentIndex(idx)
+    window.txt_server_addr.setText(str(tmp_path / "dossier_inexistant"))
+
+    # La sauvegarde doit être bloquée
+    window._on_save_clicked()
+
+    assert len(warning_called) == 1, "Un avertissement doit être affiché"
+    assert window.isVisible(), "La fenêtre doit rester ouverte après échec"
+
+    window.close()
+
+
+def test_run_backup_now_button_exists(qapp: QApplication) -> None:
+    """Le bouton 'Lancer la sauvegarde maintenant' est présent."""
+    backend = DictRegistryBackend()
+    cfg_mgr = ConfigManager(backend=backend)
+    window = MainWindow(config_mgr=cfg_mgr)
+    window.show()
+
+    assert hasattr(window, "btn_run_backup"), "Le bouton de sauvegarde immédiate doit exister"
+    assert window.btn_run_backup.isVisible(), "Le bouton de sauvegarde doit être visible"
+
+    window.close()
+
+
+def test_run_backup_now_copies_files(qapp: QApplication, tmp_path: Path, monkeypatch) -> None:
+    """Le bouton 'Lancer la sauvegarde' copie réellement les fichiers vers le drive."""
+    # Créer des fichiers source
+    source_dir = tmp_path / "Documents"
+    source_dir.mkdir()
+    (source_dir / "fichier1.txt").write_text("contenu 1")
+    (source_dir / "fichier2.txt").write_text("contenu 2")
+
+    # Dossier drive cible
+    drive_dir = tmp_path / "GoogleDrive"
+    drive_dir.mkdir()
+
+    # Mocker les dialogues
+    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: QMessageBox.Ok)
+
+    backend = DictRegistryBackend()
+    cfg_mgr = ConfigManager(backend=backend)
+    window = MainWindow(config_mgr=cfg_mgr)
+    window.show()
+
+    # Configurer le mode Drive
+    idx = window.combo_location.findData("drive")
+    window.combo_location.setCurrentIndex(idx)
+    window.txt_server_addr.setText(str(drive_dir))
+    window.txt_subfolder.setText("SystemOrion")
+
+    # Ajouter le dossier source
+    window.working_config.target_paths = [str(source_dir)]
+
+    # Lancer la sauvegarde
+    window._run_backup_now()
+
+    # Vérifier que les fichiers ont été copiés
+    backup_dir = drive_dir / "SystemOrion"
+    assert backup_dir.is_dir(), "Le dossier de sauvegarde doit être créé"
+    copied_files = list(backup_dir.iterdir())
+    assert len(copied_files) == 2, f"2 fichiers doivent être copiés, trouvé: {len(copied_files)}"
+
+    window.close()

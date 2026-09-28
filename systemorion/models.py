@@ -11,6 +11,9 @@ Décision d'architecture DA-01.
 from __future__ import annotations
 
 import enum
+import os
+import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -198,6 +201,10 @@ class OrionConfig:
     unc_override: str | None = None  # Si différent de homeDirectory AD
     backup_subfolder: str = "SystemOrion"  # Sous-dossier dans homeDirectory
 
+    # Backend de stockage : "smb" (production Windows) ou "drive" (tests Linux/macOS)
+    storage_type: str = "smb"
+    drive_path: str | None = None  # Dossier local synchronisé (Google Drive, OneDrive...)
+
     # Rétention (EF-08)
     retention_max_versions: int = 10
     retention_max_days: int = 90
@@ -220,8 +227,20 @@ class OrionConfig:
     managed_by_gpo: bool = False
 
     # Chemins système
-    log_dir: str = r"C:\ProgramData\SystemOrion\logs"
-    state_db_path: str = r"C:\ProgramData\SystemOrion\state.db"
+    log_dir: str = field(
+        default_factory=lambda: (
+            r"C:\ProgramData\SystemOrion\logs"
+            if sys.platform == "win32"
+            else os.path.join(tempfile.gettempdir(), "systemorion", "logs")
+        )
+    )
+    state_db_path: str = field(
+        default_factory=lambda: (
+            r"C:\ProgramData\SystemOrion\state.db"
+            if sys.platform == "win32"
+            else os.path.join(tempfile.gettempdir(), "systemorion", "state.db")
+        )
+    )
 
 
 # ---------------------------------------------------------------------------

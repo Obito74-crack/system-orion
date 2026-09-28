@@ -1,19 +1,29 @@
 """Thème et styles GNOME / Adwaita sombre pour l'interface System Orion (EF-01a).
 
 Transposition fidèle du design Adwaita Dark sous Qt6 / PySide6 :
-- Fond sombre sobre (#242424 / #1e1e1e)
+- Fond sombre sobre et élégant (#242424 / #1e1e1e / #2d2d2d)
 - Conteneurs de cartes arrondis (border-radius 8px / #2d2d2d)
 - Accent bleu Adwaita (#3584e4)
 - Bandeaux d'avertissement et états de verrouillage GPO
+- Zéro surface blanche / intégration défilement parfaite
 """
 
 ADWAITA_DARK_QSS = """
-/* Fenêtre et fond principal */
-QMainWindow, QDialog, QWidget#centralWidget {
+/* Fenêtre, zones de défilement et fond principal */
+QMainWindow, QDialog, QWidget#centralWidget, QScrollArea, QScrollArea > QWidget, QAbstractScrollArea, QStackedWidget {
     background-color: #242424;
     color: #f6f6f6;
     font-family: "Segoe UI", "Cantarell", "Noto Sans", sans-serif;
     font-size: 13px;
+}
+
+QScrollArea {
+    border: none;
+    background-color: #242424;
+}
+
+QScrollArea > QWidget > QWidget {
+    background-color: #242424;
 }
 
 /* En-tête / Header Bar */
@@ -48,7 +58,7 @@ QFrame.cardSection {
     background-color: #2d2d2d;
     border: 1px solid #3d3d3d;
     border-radius: 8px;
-    padding: 14px;
+    padding: 16px;
     margin-bottom: 12px;
 }
 
@@ -64,7 +74,7 @@ QLabel.sectionSubtitle {
     color: #9a9996;
 }
 
-/* Champs de saisie et listes déroulantes */
+/* Champs de saisie, listes déroulantes et vues */
 QLineEdit, QComboBox, QListWidget {
     background-color: #383838;
     color: #ffffff;
@@ -84,6 +94,15 @@ QLineEdit:disabled, QComboBox:disabled, QListWidget:disabled {
     background-color: #2a2a2a;
     color: #777777;
     border: 1px solid #333333;
+}
+
+/* Menu déroulant QComboBox */
+QComboBox QAbstractItemView {
+    background-color: #303030;
+    color: #ffffff;
+    border: 1px solid #4d4d4d;
+    selection-background-color: #3584e4;
+    selection-color: #ffffff;
 }
 
 /* ListWidget des dossiers */
@@ -192,20 +211,41 @@ QPushButton.toolButton:hover {
 }
 
 /* Ascenseurs */
-QScrollBar:vertical {
+QScrollBar:vertical, QScrollBar:horizontal {
     border: none;
     background: #242424;
     width: 8px;
+    height: 8px;
     margin: 0px;
 }
 
-QScrollBar::handle:vertical {
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
     background: #4a4a4a;
     min-height: 20px;
+    min-width: 20px;
     border-radius: 4px;
 }
 
-QScrollBar::handle:vertical:hover {
+QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
     background: #5a5a5a;
+}
+
+/* Boîtes de dialogue de message */
+QMessageBox {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+QMessageBox QLabel {
+    color: #ffffff;
+}
+
+/* Tooltips */
+QToolTip {
+    background-color: #303030;
+    color: #ffffff;
+    border: 1px solid #4d4d4d;
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 """
