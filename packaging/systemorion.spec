@@ -37,6 +37,9 @@ hidden_imports_service = [
     "systemorion.backup",
     "systemorion.logging_agent",
     "systemorion.service",
+    "systemorion.storage_backend",
+    "systemorion.restore",
+    "systemorion.cli",
 ]
 
 hidden_imports_gui = [

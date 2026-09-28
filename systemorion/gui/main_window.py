@@ -13,7 +13,12 @@ from __future__ import annotations
 
 import copy
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
+import webbrowser
+from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -29,6 +34,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -65,8 +71,8 @@ class MainWindow(QMainWindow):
         self.is_gpo_locked = self.config_mgr.is_managed_by_gpo()
 
         self.setWindowTitle("System Orion — Configuration")
-        self.resize(680, 720)
-        self.setMinimumSize(580, 600)
+        self.resize(720, 800)
+        self.setMinimumSize(600, 650)
         self.setStyleSheet(ADWAITA_DARK_QSS)
 
         self._build_ui()
@@ -131,6 +137,10 @@ class MainWindow(QMainWindow):
     # -----------------------------------------------------------------------
 
     def _build_screen_1_main(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -140,6 +150,7 @@ class MainWindow(QMainWindow):
         card_storage = QFrame()
         card_storage.setProperty("class", "cardSection")
         storage_layout = QVBoxLayout(card_storage)
+        storage_layout.setSpacing(10)
 
         lbl_storage_title = QLabel("Stockage")
         lbl_storage_title.setProperty("class", "sectionTitle")
@@ -151,10 +162,13 @@ class MainWindow(QMainWindow):
         storage_layout.addWidget(lbl_location)
 
         self.combo_location = QComboBox()
-        self.combo_location.addItem("Serveur réseau (partage d'entreprise SMB)")
+        self.combo_location.addItem("Serveur réseau (partage d'entreprise SMB)", "smb")
+        self.combo_location.addItem("Google Drive / Drive synchronisé", "drive")
+        self.combo_location.setCurrentIndex(0)
+        self.combo_location.currentIndexChanged.connect(self._on_location_changed)
         storage_layout.addWidget(self.combo_location)
 
-        # Adresse du serveur
+        # Adresse du serveur / chemin Drive (avec boutons sur la même ligne)
         lbl_server = QLabel("Adresse du serveur distant")
         lbl_server.setProperty("class", "sectionSubtitle")
         storage_layout.addWidget(lbl_server)
@@ -163,7 +177,13 @@ class MainWindow(QMainWindow):
         self.txt_server_addr = QLineEdit()
         self.txt_server_addr.setPlaceholderText(r"\\serveur\partage")
         self.txt_server_addr.setReadOnly(True)
-        server_row.addWidget(self.txt_server_addr)
+        server_row.addWidget(self.txt_server_addr, stretch=1)
+
+        self.btn_browse_drive = QPushButton("Parcourir…")
+        self.btn_browse_drive.setToolTip("Sélectionner le dossier local synchronisé (ex: ~/GoogleDrive)")
+        self.btn_browse_drive.clicked.connect(self._browse_drive_folder)
+        self.btn_browse_drive.setVisible(False)
+        server_row.addWidget(self.btn_browse_drive)
 
         self.btn_edit_server = QPushButton("Modifier")
         self.btn_edit_server.setToolTip("Modifier l'adresse cible manuellement")
@@ -192,6 +212,7 @@ class MainWindow(QMainWindow):
         card_folders_summary = QFrame()
         card_folders_summary.setProperty("class", "cardSection")
         summary_layout = QVBoxLayout(card_folders_summary)
+        summary_layout.setSpacing(10)
 
         lbl_folders_title = QLabel("Dossiers à sauvegarder")
         lbl_folders_title.setProperty("class", "sectionTitle")
@@ -209,12 +230,25 @@ class MainWindow(QMainWindow):
         self.btn_goto_folders.clicked.connect(self._goto_folders_screen)
         summary_layout.addWidget(self.btn_goto_folders, alignment=Qt.AlignmentFlag.AlignRight)
 
+        # Bouton de sauvegarde immédiate
+        self.btn_run_backup = QPushButton("Lancer la sauvegarde maintenant")
+        self.btn_run_backup.setToolTip("Copie immédiatement les dossiers sélectionnés vers la cible")
+        self.btn_run_backup.clicked.connect(self._run_backup_now)
+        summary_layout.addWidget(self.btn_run_backup, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Label de feedback (chemin de la dernière sauvegarde)
+        self.lbl_backup_feedback = QLabel("")
+        self.lbl_backup_feedback.setProperty("class", "sectionSubtitle")
+        self.lbl_backup_feedback.setWordWrap(True)
+        summary_layout.addWidget(self.lbl_backup_feedback)
+
         layout.addWidget(card_folders_summary)
 
         # Section 3 : Restauration et historique (EF-09+)
         card_restore = QFrame()
         card_restore.setProperty("class", "cardSection")
         restore_layout = QVBoxLayout(card_restore)
+        restore_layout.setSpacing(10)
 
         lbl_restore_title = QLabel("Restauration et historique")
         lbl_restore_title.setProperty("class", "sectionTitle")
@@ -231,13 +265,18 @@ class MainWindow(QMainWindow):
         layout.addWidget(card_restore)
         layout.addStretch()
 
-        return container
+        scroll.setWidget(container)
+        return scroll
 
     # -----------------------------------------------------------------------
     # Écran 2 — Sous-écran Dossiers & Exclusions (EF-01a)
     # -----------------------------------------------------------------------
 
     def _build_screen_2_folders(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -251,6 +290,7 @@ class MainWindow(QMainWindow):
         card_saved = QFrame()
         card_saved.setProperty("class", "cardSection")
         saved_layout = QVBoxLayout(card_saved)
+        saved_layout.setSpacing(8)
 
         saved_hdr = QHBoxLayout()
         lbl_saved_title = QLabel("Dossiers à sauvegarder")
@@ -276,6 +316,7 @@ class MainWindow(QMainWindow):
         card_ignored = QFrame()
         card_ignored.setProperty("class", "cardSection")
         ignored_layout = QVBoxLayout(card_ignored)
+        ignored_layout.setSpacing(8)
 
         ignored_hdr = QHBoxLayout()
         lbl_ignored_title = QLabel("Dossiers et motifs à ignorer")
@@ -307,7 +348,8 @@ class MainWindow(QMainWindow):
         self.btn_reset_defaults.clicked.connect(self._confirm_reset_defaults)
         layout.addWidget(self.btn_reset_defaults, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        return container
+        scroll.setWidget(container)
+        return scroll
 
     # -----------------------------------------------------------------------
     # Chargement et Synchronisation des Données
@@ -315,16 +357,32 @@ class MainWindow(QMainWindow):
 
     def _load_config_into_ui(self) -> None:
         """Remplit les contrôles graphiques avec la configuration active."""
-        # 1. Adresse cible
-        target_unc = self.working_config.unc_override
-        if not target_unc:
-            # Résolution automatique AD
-            username = os.environ.get("USERNAME", "Utilisateur")
-            domain = os.environ.get("USERDOMAIN", "DOMAINE")
-            resolved = self.ad_resolver.get_user_home_directory(domain, username)
-            target_unc = resolved or r"\\serveur\partage\utilisateurs$"
+        # 0. Type de stockage (Drive ou SMB)
+        if self.working_config.storage_type == "drive":
+            idx = self.combo_location.findData("drive")
+            if idx >= 0:
+                self.combo_location.setCurrentIndex(idx)
+        else:
+            idx = self.combo_location.findData("smb")
+            if idx >= 0:
+                self.combo_location.setCurrentIndex(idx)
 
-        self.txt_server_addr.setText(target_unc)
+        # 1. Adresse cible
+        if self.working_config.storage_type == "drive":
+            target = self.working_config.drive_path or str(Path.home() / "GoogleDrive")
+            self.txt_server_addr.setReadOnly(False)
+            self.txt_server_addr.setText(target)
+            self.btn_browse_drive.setVisible(True)
+        else:
+            target_unc = self.working_config.unc_override
+            if not target_unc:
+                # Résolution automatique AD
+                username = os.environ.get("USERNAME", "Utilisateur")
+                domain = os.environ.get("USERDOMAIN", "DOMAINE")
+                resolved = self.ad_resolver.get_user_home_directory(domain, username)
+                target_unc = resolved or r"\\serveur\partage\utilisateurs$"
+            self.txt_server_addr.setText(target_unc)
+
         self.txt_subfolder.setText(self.working_config.backup_subfolder)
 
         # 2. Listes de dossiers
@@ -510,6 +568,98 @@ class MainWindow(QMainWindow):
         self.lbl_header_title.setText("System Orion")
         self.btn_cancel.setText("Annuler")
 
+    def _run_backup_now(self) -> None:
+        """Lance une sauvegarde immédiate des dossiers sélectionnés vers la cible."""
+        if self.is_gpo_locked:
+            return
+
+        # 1. Sauvegarder d'abord la configuration courante
+        try:
+            self.config_mgr.save(self.working_config)
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Impossible de sauvegarder la configuration : {e}")
+            return
+
+        # 2. Déterminer le backend de stockage (source de vérité : combo UI)
+        storage_type = self.combo_location.itemData(self.combo_location.currentIndex()) or "smb"
+        if storage_type == "drive":
+            drive_path = self.working_config.drive_path or self.txt_server_addr.text().strip()
+            if not drive_path or not os.path.isdir(drive_path):
+                QMessageBox.warning(
+                    self,
+                    "Dossier Drive introuvable",
+                    f"Le dossier '{drive_path}' n'existe pas. Sélectionnez un dossier valide.",
+                )
+                return
+            from systemorion.storage_backend import DriveStorageBackend
+            backend = DriveStorageBackend(drive_path)
+        else:
+            from systemorion.storage_backend import SmbStorageBackend
+            unc = self.working_config.unc_override or self.txt_server_addr.text().strip()
+            backend = SmbStorageBackend(unc)
+
+        # 3. Parcourir les dossiers et copier les fichiers
+        from systemorion.backup import BackupEngine
+        from systemorion.state import StateDB
+        from systemorion.logging_agent import OrionLogger
+
+        if sys.platform != "win32":
+            db_path = os.path.join(tempfile.gettempdir(), "systemorion_state.db")
+            log_path = os.path.join(tempfile.gettempdir(), "systemorion_logs")
+        else:
+            db_path = self.working_config.state_db_path
+            log_path = self.working_config.log_dir
+
+        state_db = StateDB(db_path=db_path)
+        logger = OrionLogger(log_dir=log_path)
+        engine = BackupEngine(
+            state_db=state_db,
+            config=self.working_config,
+            orion_logger=logger,
+            storage_backend=backend,
+        )
+
+        files_copied = 0
+        errors: list[str] = []
+        for raw_target in self.working_config.target_paths:
+            target = os.path.expanduser(raw_target.replace("\\", os.sep))
+            if not os.path.exists(target):
+                errors.append(f"Dossier introuvable: {target}")
+                continue
+            for root, _, files in os.walk(target):
+                for f in files:
+                    full_path = os.path.join(root, f)
+                    try:
+                        sz = os.path.getsize(full_path)
+                    except OSError:
+                        continue
+                    dest = backend.resolve_destination(full_path, target, self.working_config.backup_subfolder)
+                    engine.enqueue_file(full_path, dest, sz)
+
+        # 4. Exécuter le transfert
+        stats = engine.process_queue(batch_limit=100)
+
+        # 5. Afficher le résultat
+        backup_path = f"{backend.root_hint}/{self.working_config.backup_subfolder}"
+        if stats.files_saved > 0:
+            msg = (
+                f"{stats.files_saved} fichier(s) sauvegardé(s)\n"
+                f"{stats.bytes_transferred} octets transférés\n"
+                f"{stats.files_errored} erreur(s)\n\n"
+                f"Emplacement : {backup_path}"
+            )
+            QMessageBox.information(self, "Sauvegarde terminée", msg)
+            self.lbl_backup_feedback.setText(f"Dernière sauvegarde : {backup_path}")
+        else:
+            QMessageBox.warning(
+                self,
+                "Sauvegarde",
+                f"Aucun fichier à sauvegarder.\n{len(errors)} erreur(s) de dossier.",
+            )
+            self.lbl_backup_feedback.setText("Aucune sauvegarde effectuée.")
+
+        state_db.close()
+
     def _on_cancel_clicked(self) -> None:
         """Bouton Annuler / Retour."""
         if self.stack.currentIndex() == 1:
@@ -517,30 +667,119 @@ class MainWindow(QMainWindow):
         else:
             self.close()
 
+    def _on_location_changed(self, index: int) -> None:
+        """Affiche/masque le bouton Parcourir et gère la détection automatique du dossier Drive."""
+        storage_type = self.combo_location.itemData(index) or "smb"
+        is_drive = storage_type == "drive"
+        self.btn_browse_drive.setVisible(is_drive)
+        if is_drive:
+            self.txt_server_addr.setReadOnly(False)
+            self.txt_server_addr.setPlaceholderText("~/GoogleDrive ou /mnt/drive")
+            current_text = self.txt_server_addr.text().strip()
+            if not current_text or current_text.startswith(r"\\"):
+                drive_dir = Path.home() / "GoogleDrive"
+                try:
+                    drive_dir.mkdir(parents=True, exist_ok=True)
+                except OSError:
+                    pass
+                current_text = str(drive_dir)
+                self.txt_server_addr.setText(current_text)
+
+            self.working_config.storage_type = "drive"
+            self.working_config.drive_path = current_text
+            self.working_config.unc_override = None
+            try:
+                self.config_mgr.save(self.working_config)
+                self.lbl_backup_feedback.setText(f"Cible Drive auto-configurée : {current_text}")
+            except Exception:
+                pass
+        else:
+            self.txt_server_addr.setReadOnly(True)
+            self.txt_server_addr.setPlaceholderText(r"\\serveur\partage")
+
+    def _browse_drive_folder(self) -> None:
+        """Ouvre le navigateur pour l'authentification Drive, sélectionne le dossier local et enregistre la configuration."""
+        url = "https://drive.google.com"
+        opened = False
+        try:
+            opened = bool(webbrowser.open(url))
+        except Exception:
+            opened = False
+
+        if not opened:
+            for b_cmd in ["firefox", "google-chrome", "chromium", "/snap/bin/chromium"]:
+                if shutil.which(b_cmd) or os.path.exists(b_cmd):
+                    try:
+                        subprocess.Popen([b_cmd, url])
+                        opened = True
+                        break
+                    except Exception:
+                        pass
+
+        QMessageBox.information(
+            self,
+            "Authentification Google Drive",
+            "Le navigateur web a été ouvert pour vous permettre de vous connecter à votre compte Google Drive.\n\n"
+            "Veuillez maintenant sélectionner le dossier local synchronisé (ex: ~/GoogleDrive).",
+        )
+
+        folder = QFileDialog.getExistingDirectory(self, "Sélectionner le dossier Drive synchronisé")
+        if folder:
+            self.txt_server_addr.setText(folder)
+            self.working_config.storage_type = "drive"
+            self.working_config.drive_path = folder
+            self.working_config.unc_override = None
+            try:
+                self.config_mgr.save(self.working_config)
+                QMessageBox.information(
+                    self,
+                    "Configuration enregistrée",
+                    f"Le dossier Google Drive a été configuré et enregistré avec succès :\n{folder}",
+                )
+            except Exception as e:
+                QMessageBox.warning(self, "Erreur d'enregistrement", f"Impossible d'enregistrer la configuration : {e}")
+
     def _on_save_clicked(self) -> None:
         """Bouton Sauvegarder : valide la connectivité et persiste dans HKLM\\SOFTWARE\\SystemOrion."""
         if self.is_gpo_locked:
             return
 
-        # 1. Validation de l'adresse cible
-        server_val = self.txt_server_addr.text().strip()
-        if server_val:
-            self.working_config.unc_override = server_val
-        self.working_config.backup_subfolder = self.txt_subfolder.text().strip() or "SystemOrion"
+        # 1. Récupération du type de stockage sélectionné
+        storage_type = self.combo_location.currentData() or "smb"
+        self.working_config.storage_type = storage_type
 
-        # 2. Test de connectivité préalable proposé (EF-01a)
-        if server_val.startswith(r"\\") and not os.path.exists(server_val):
-            res = QMessageBox.warning(
-                self,
-                "Avertissement connectivité réseau",
-                f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
-                "Voulez-vous tout de même enregistrer cette configuration ?\n"
-                "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
-                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Save,
-            )
-            if res != QMessageBox.StandardButton.Save:
+        # 2. Validation selon le type de stockage
+        server_val = self.txt_server_addr.text().strip()
+        if storage_type == "drive":
+            # Mode Drive : le chemin doit exister et être un dossier local
+            self.working_config.drive_path = server_val
+            self.working_config.unc_override = None
+            if not os.path.isdir(server_val):
+                QMessageBox.warning(
+                    self,
+                    "Dossier Drive introuvable",
+                    f"Le dossier '{server_val}' n'existe pas.\n\n"
+                    "Veuillez sélectionner un dossier valide (ex: ~/GoogleDrive monté via rclone).",
+                )
                 return
+        else:
+            # Mode SMB : validation UNC
+            self.working_config.unc_override = server_val or None
+            self.working_config.drive_path = None
+            if server_val.startswith(r"\\") and not os.path.exists(server_val):
+                res = QMessageBox.warning(
+                    self,
+                    "Avertissement connectivité réseau",
+                    f"Le partage réseau cible '{server_val}' n'est pas joignable actuellement.\n\n"
+                    "Voulez-vous tout de même enregistrer cette configuration ?\n"
+                    "(Les sauvegardes seront conservées en file d'attente locale jusqu'au rétablissement du réseau)",
+                    QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Save,
+                )
+                if res != QMessageBox.StandardButton.Save:
+                    return
+
+        self.working_config.backup_subfolder = self.txt_subfolder.text().strip() or "SystemOrion"
 
         # 3. Persistance dans le magasin unique (D7)
         try:
