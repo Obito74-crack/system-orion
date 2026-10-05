@@ -1,7 +1,7 @@
 # Carte Mentale — System Orion
 
 > **Usage** : Ouvrir avec un rendeur Mermaid (VS Code + plugin, GitHub, mermaid.live)
-> **Dernière mise à jour** : 2026-09-27
+> **Dernière mise à jour** : 2026-10-05
 > **Version projet** : 0.1.0
 
 ---
@@ -12,8 +12,8 @@ mindmap
     État Global
       Version 0.1.0
       Branche main
-      10 commits
       CI/CD opérationnelle
+      101 tests passés 100% ✅
     Coeur de Sauvegarde
       Service Windows SYSTEM
         service.py ✅
@@ -41,12 +41,15 @@ mindmap
         Versioning horodaté __YYYYMMDD_HHMM ✅
         Rétention N versions / jours ✅
         Limitation bande passante ✅
+        Déduplication SHA-256 fingerprint ✅
+        Multi-workers parallèle Robocopy-style ✅
       Persistance SQLite
         state.py ✅
         Mode WAL + synchronous FULL ✅
         Machine à états PENDING COPYING DONE FAILED ✅
         Reset COPYING → PENDING au démarrage ✅
         Purge anciens transferts ✅
+        Table backup_history avec content_hash ✅
     Interface Utilisateur
       Panneau Qt6 PySide6
         gui/main_window.py ✅
@@ -123,10 +126,11 @@ mindmap
         test_logging ✅
         test_gpo ✅
         test_packaging ✅
+        test_advanced_features ✅
       Qualité
-        ruff ✅
-        mypy 0 erreur ✅
-        pytest ✅
+        ruff 0 avertissement ✅
+        mypy 0 erreur (strict) ✅
+        pytest 101/101 passés ✅
       CI/CD
         GitHub Actions ✅
     GPO Active Directory

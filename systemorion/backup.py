@@ -13,11 +13,13 @@ Gère :
 from __future__ import annotations
 
 import datetime
+import hashlib
 import logging
 import os
 import shutil
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import AbstractContextManager as ContextManager
 from contextlib import nullcontext
 from pathlib import Path, PureWindowsPath
@@ -62,6 +64,18 @@ def build_versioned_destination(dest_path: str, version_tag: str) -> str:
 
     versioned_name = f"{stem}{version_tag}{suffix}"
     return str(parent / versioned_name)
+
+
+def compute_file_hash(filepath: str, block_size: int = 65536) -> str:
+    """Calcule l'empreinte SHA-256 d'un fichier par blocs (optimisé RAM)."""
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while True:
+            chunk = f.read(block_size)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 class NetworkBackoffTracker:
@@ -195,8 +209,8 @@ class BackupEngine:
     ) -> tuple[bool, int, str | None]:
         """Traite un fichier individuel de la file d'attente.
 
-        Gère le versioning (EF-08), la mise à jour de l'état SQLite,
-        et l'enregistrement dans l'historique des sauvegardes.
+        Gère le fingerprinting SHA-256 (déduplication), le versioning (EF-08),
+        la mise à jour de l'état SQLite et l'enregistrement dans l'historique.
         """
         source = source_override or item.source_path
         if not os.path.exists(source):
@@ -205,30 +219,51 @@ class BackupEngine:
             self.state_db.set_transfer_state(item.id, TransferState.DONE)
             return (True, 0, None)
 
-        # 1. Passage en état COPYING (EF-12)
+        # 1. Vérification par empreinte de contenu (Deduplication / Fingerprinting)
+        content_hash: str | None = None
+        if getattr(self.config, "dedup_by_hash", True):
+            try:
+                latest = self.state_db.get_latest_backup(item.source_path)
+                current_size = os.path.getsize(source)
+                content_hash = compute_file_hash(source)
+                if (
+                    latest is not None
+                    and latest.content_hash
+                    and latest.file_size == current_size
+                    and latest.content_hash == content_hash
+                ):
+                    logger.debug("Fichier inchangé (SHA-256 identique) : %s", item.source_path)
+                    self.state_db.set_transfer_state(item.id, TransferState.DONE)
+                    self.backoff.record_success()
+                    return (True, 0, None)
+            except OSError as e:
+                logger.warning("Impossible de calculer le hash pour '%s': %s", source, e)
+
+        # 2. Passage en état COPYING (EF-12)
         self.state_db.set_transfer_state(item.id, TransferState.COPYING)
 
-        # 2. Construction du chemin versionné (EF-08)
+        # 3. Construction du chemin versionné (EF-08)
         version_tag = generate_version_tag()
         versioned_dest = build_versioned_destination(item.dest_path, version_tag)
 
         try:
-            # 3. Transfert atomique avec throttling
+            # 4. Transfert atomique avec throttling
             copied_bytes = self.copy_file_atomic(
                 source_path=source,
                 dest_path=versioned_dest,
                 bandwidth_limit_kbps=self.config.bandwidth_limit_kbps,
             )
 
-            # 4. Enregistrement dans l'historique des sauvegardes (EF-08)
+            # 5. Enregistrement dans l'historique des sauvegardes (EF-08) avec hash SHA-256
             self.state_db.record_backup(
                 source_path=item.source_path,
                 dest_path=versioned_dest,
                 file_size=copied_bytes,
                 version_tag=version_tag,
+                content_hash=content_hash,
             )
 
-            # 5. Passage en état DONE (EF-12)
+            # 6. Passage en état DONE (EF-12)
             self.state_db.set_transfer_state(item.id, TransferState.DONE)
             self.backoff.record_success()
             return (True, copied_bytes, None)
@@ -247,8 +282,9 @@ class BackupEngine:
         self,
         batch_limit: int = 50,
         impersonation_ctx: ContextManager | None = None,
+        max_workers: int | None = None,
     ) -> BackupStats:
-        """Dépile et transfère les fichiers en attente (EF-12).
+        """Dépile et transfère les fichiers en attente (EF-12) avec support multi-workers parallèle.
 
         Prend en compte le backoff réseau : si un incident réseau est survenu récemment,
         le dépilage est suspendu jusqu'au terme du délai calculé.
@@ -268,17 +304,37 @@ class BackupEngine:
             return stats
 
         ctx = impersonation_ctx if impersonation_ctx is not None else nullcontext()
+        workers: int = max_workers if max_workers is not None else getattr(self.config, "max_backup_workers", 1) or 1
 
         with ctx:
-            for item in pending_items:
-                success, bytes_transferred, _ = self.process_transfer_item(item)
-                if success:
-                    stats.files_saved += 1
-                    stats.bytes_transferred += bytes_transferred
-                else:
-                    stats.files_errored += 1
-                    # En cas d'échec réseau, on interrompt le lot courant pour éviter de mitrailler le serveur
-                    break
+            if workers > 1 and len(pending_items) > 1:
+                # Mode multi-workers parallèle (haute performance type Robocopy /MT)
+                with ThreadPoolExecutor(max_workers=min(workers, len(pending_items))) as executor:
+                    future_to_item = {
+                        executor.submit(self.process_transfer_item, item): item
+                        for item in pending_items
+                    }
+                    for future in as_completed(future_to_item):
+                        try:
+                            success, bytes_transferred, _ = future.result()
+                            if success:
+                                stats.files_saved += 1
+                                stats.bytes_transferred += bytes_transferred
+                            else:
+                                stats.files_errored += 1
+                        except Exception as e:
+                            stats.files_errored += 1
+                            logger.error("Exception non interceptée dans worker transfert : %s", e)
+            else:
+                for item in pending_items:
+                    success, bytes_transferred, _ = self.process_transfer_item(item)
+                    if success:
+                        stats.files_saved += 1
+                        stats.bytes_transferred += bytes_transferred
+                    else:
+                        stats.files_errored += 1
+                        # En cas d'échec réseau, on interrompt le lot courant pour éviter de mitrailler le serveur
+                        break
 
         stats.cycle_duration_s = time.time() - start_time
         return stats

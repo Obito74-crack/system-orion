@@ -573,17 +573,18 @@ class MainWindow(QMainWindow):
         if self.is_gpo_locked:
             return
 
-        # 1. Sauvegarder d'abord la configuration courante
-        try:
-            self.config_mgr.save(self.working_config)
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur", f"Impossible de sauvegarder la configuration : {e}")
-            return
-
-        # 2. Déterminer le backend de stockage (source de vérité : combo UI)
+        # 1. Synchroniser d'abord la configuration active depuis l'état des champs UI
         storage_type = self.combo_location.itemData(self.combo_location.currentIndex()) or "smb"
+        self.working_config.storage_type = storage_type
+        server_val = self.txt_server_addr.text().strip()
+        self.working_config.backup_subfolder = self.txt_subfolder.text().strip() or "SystemOrion"
+
         if storage_type == "drive":
-            drive_path = self.working_config.drive_path or self.txt_server_addr.text().strip()
+            drive_path = server_val or self.working_config.drive_path or str(Path.home() / "GoogleDrive")
+            try:
+                os.makedirs(drive_path, exist_ok=True)
+            except OSError:
+                pass
             if not drive_path or not os.path.isdir(drive_path):
                 QMessageBox.warning(
                     self,
@@ -591,17 +592,28 @@ class MainWindow(QMainWindow):
                     f"Le dossier '{drive_path}' n'existe pas. Sélectionnez un dossier valide.",
                 )
                 return
-            from systemorion.storage_backend import DriveStorageBackend
-            backend = DriveStorageBackend(drive_path)
+            self.working_config.drive_path = drive_path
+            self.working_config.unc_override = None
+            from systemorion.storage_backend import DriveStorageBackend, StorageBackend
+            backend: StorageBackend = DriveStorageBackend(drive_path)
         else:
+            unc = server_val or self.working_config.unc_override or r"\\localhost\backup"
+            self.working_config.unc_override = server_val or None
+            self.working_config.drive_path = None
             from systemorion.storage_backend import SmbStorageBackend
-            unc = self.working_config.unc_override or self.txt_server_addr.text().strip()
             backend = SmbStorageBackend(unc)
+
+        # 2. Sauvegarder la configuration courante synchronisée
+        try:
+            self.config_mgr.save(self.working_config)
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Impossible de sauvegarder la configuration : {e}")
+            return
 
         # 3. Parcourir les dossiers et copier les fichiers
         from systemorion.backup import BackupEngine
-        from systemorion.state import StateDB
         from systemorion.logging_agent import OrionLogger
+        from systemorion.state import StateDB
 
         if sys.platform != "win32":
             db_path = os.path.join(tempfile.gettempdir(), "systemorion_state.db")
@@ -619,7 +631,6 @@ class MainWindow(QMainWindow):
             storage_backend=backend,
         )
 
-        files_copied = 0
         errors: list[str] = []
         for raw_target in self.working_config.target_paths:
             target = os.path.expanduser(raw_target.replace("\\", os.sep))

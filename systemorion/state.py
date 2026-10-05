@@ -121,11 +121,17 @@ class StateDB:
                     dest_path TEXT NOT NULL,
                     file_size INTEGER NOT NULL,
                     backed_up_at TEXT NOT NULL,
-                    version_tag TEXT NOT NULL
+                    version_tag TEXT NOT NULL,
+                    content_hash TEXT
                 );
             """)
+            try:
+                cur.execute("ALTER TABLE backup_history ADD COLUMN content_hash TEXT;")
+            except sqlite3.OperationalError:
+                pass
             cur.execute("CREATE INDEX IF NOT EXISTS idx_history_source ON backup_history(source_path);")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_history_backed_up ON backup_history(backed_up_at);")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_history_hash ON backup_history(content_hash);")
 
             # Table métriques USN pour dimensionnement dynamique (EF-04)
             cur.execute("""
@@ -277,6 +283,15 @@ class StateDB:
             cur.execute(query, tuple(params))
             return [self._row_to_transfer_record(row) for row in cur.fetchall()]
 
+    def get_transfer_record(self, record_id: int) -> TransferRecord | None:
+        """Retourne un enregistrement de transfert spécifique par son identifiant."""
+        with self._lock:
+            conn = self._get_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM transfer_queue WHERE id = ?;", (record_id,))
+            row = cur.fetchone()
+            return self._row_to_transfer_record(row) if row else None
+
     def set_transfer_state(
         self,
         transfer_id: int,
@@ -406,6 +421,7 @@ class StateDB:
         dest_path: str,
         file_size: int,
         version_tag: str,
+        content_hash: str | None = None,
     ) -> int:
         """Enregistre une sauvegarde réussie dans l'historique."""
         with self._lock:
@@ -417,10 +433,10 @@ class StateDB:
                 cur.execute(
                     """
                     INSERT INTO backup_history
-                    (source_path, dest_path, file_size, backed_up_at, version_tag)
-                    VALUES (?, ?, ?, ?, ?);
+                    (source_path, dest_path, file_size, backed_up_at, version_tag, content_hash)
+                    VALUES (?, ?, ?, ?, ?, ?);
                     """,
-                    (source_path, dest_path, file_size, now, version_tag),
+                    (source_path, dest_path, file_size, now, version_tag, content_hash),
                 )
                 rec_id = cur.lastrowid
                 cur.execute("COMMIT;")
@@ -447,6 +463,11 @@ class StateDB:
 
             cur.execute(query, tuple(params))
             return [self._row_to_backup_record(row) for row in cur.fetchall()]
+
+    def get_latest_backup(self, source_path: str) -> BackupRecord | None:
+        """Retourne la version sauvegardée la plus récente d'un fichier source donné."""
+        versions = self.get_backup_versions(source_path, limit=1)
+        return versions[0] if versions else None
 
     def get_prunable_versions(
         self,
@@ -547,6 +568,10 @@ class StateDB:
 
     @staticmethod
     def _row_to_backup_record(row: sqlite3.Row) -> BackupRecord:
+        try:
+            content_hash = row["content_hash"]
+        except (IndexError, KeyError):
+            content_hash = None
         return BackupRecord(
             id=row["id"],
             source_path=row["source_path"],
@@ -554,4 +579,5 @@ class StateDB:
             file_size=row["file_size"],
             backed_up_at=datetime.fromisoformat(row["backed_up_at"]),
             version_tag=row["version_tag"],
+            content_hash=content_hash,
         )

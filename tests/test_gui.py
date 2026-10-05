@@ -201,7 +201,6 @@ def test_drive_save_fails_if_directory_not_exists(qapp: QApplication, tmp_path: 
     monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: QMessageBox.Ok)
 
     warning_called = []
-    original_warning = QMessageBox.warning
 
     def mock_warning(*args, **kwargs):
         warning_called.append(True)

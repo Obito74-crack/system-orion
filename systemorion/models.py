@@ -108,6 +108,7 @@ class BackupRecord:
     file_size: int
     backed_up_at: datetime
     version_tag: str  # ex: "__20260908_1430" (EF-08)
+    content_hash: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +209,14 @@ class OrionConfig:
     # Rétention (EF-08)
     retention_max_versions: int = 10
     retention_max_days: int = 90
+    gfs_retention_enabled: bool = False
+    gfs_keep_daily: int = 7
+    gfs_keep_weekly: int = 4
+    gfs_keep_monthly: int = 12
+
+    # Déduplication et Performance Multi-Workers (Boss de fin de jeu)
+    dedup_by_hash: bool = True  # Évite les copies inutiles via fingerprint SHA-256
+    max_backup_workers: int = 1  # 1 = séquentiel, >1 = parallélisation multi-threads type Robocopy /MT
 
     # USN Journal (EF-04)
     usn_journal_size_mb: int = 256

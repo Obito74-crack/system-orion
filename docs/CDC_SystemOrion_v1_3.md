@@ -236,6 +236,17 @@ Principe directeur : **découplage total de la détection (locale) et du transfe
 - **Microcoupures** : bénéfice gratuit des *durable handles* SMB3 natifs Windows ; la machine à états SQLite reste le mécanisme principal.
 - **Gestion de la tempête de reconnexion** : gigue de reprise (0-15 min, configurable) + limitation de bande passante conservatrice à la reconnexion, relâchée progressivement, paramétrable par GPO.
 
+### EF-13 — Déduplication par Fingerprinting de Contenu (SHA-256)
+- **Principe** : éviter tout transfert réseau redondant de fichiers dont le contenu est identique, même si le journal USN a signalé une modification ou que les attributs/mtime ont changé.
+- **Empreinte cryptographique** : calcul de hash SHA-256 par blocs de 64 Ko (optimisé RAM).
+- **Historique enrichi** : persistance de la colonne `content_hash` dans la table SQLite `backup_history`.
+- **Court-circuit optimisé** : si la taille et l'empreinte SHA-256 correspondent à la dernière sauvegarde réussie du fichier, le transfert distant est évité, l'entrée est marquée `DONE` et l'économie de bande passante est journalisée.
+
+### EF-14 — Transferts Parallèles Multi-Workers (Performance SMB Accélérée)
+- **Parallélisation configurable** : exécution concurrente des transferts via un pool de threads (`max_backup_workers`, configurable par GPO/registre de 1 à 32, défaut 1).
+- **Saturation des liens haut débit** : permet d'atteindre le débit maximal sur réseau local (SMB 3.1.1 multi-channel) et réduit l'impact de la latence lors de transferts massifs de petits fichiers.
+- **Concurrence thread-safe** : synchronisation stricte des transitions d'états dans SQLite (`StateDB._lock`) et gestion collective du backoff en cas d'incident réseau.
+
 ---
 
 ## 7. Exigences techniques

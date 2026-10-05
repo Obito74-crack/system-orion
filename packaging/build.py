@@ -39,7 +39,7 @@ def get_version() -> str:
 def check_prerequisites() -> list[str]:
     """Vérifie les prérequis et retourne la liste des outils manquants."""
     missing: list[str] = []
-    if sys.version_info < (3, 11):
+    if sys.version_info < (3, 11):  # noqa: UP036
         missing.append(f"Python 3.11+ requis (trouvé: {sys.version.split()[0]})")
     try:
         import PyInstaller  # noqa: F401
